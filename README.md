@@ -123,9 +123,7 @@ $$
 
 * Relational Accuracy:
 
-$$
-\mathcal{L}_{relation} = \text{MSE}(I_{ij}^{GT}, I_{ij}^{pred})
-$$
+$$ \mathcal{L}{relation} = \text{MSE}(I{ij}^{GT}, I_{ij}^{pred}) $$
 
 * Intent Loss:
 
