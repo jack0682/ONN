@@ -1,0 +1,32 @@
+# Core Framework
+torch>=2.1.0
+torchvision
+torchaudio
+
+# Tensor Manipulation
+numpy>=1.22
+scipy
+
+# Transformer / GAT
+einops>=0.6.0
+torch-geometric>=2.3.0
+networkx
+
+# 시계열 처리 및 구조 정리
+pandas
+scikit-learn
+
+# 시각화 및 분석 도구
+matplotlib
+seaborn
+tensorboard
+
+# 기타 유틸
+tqdm
+pyyaml
+rich          # 예쁜 콘솔 출력
+graphviz      # 시각적 그래프 구조 출력
+
+# Optional - 개발/디버깅 도구
+ipython
+jupyter

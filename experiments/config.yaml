@@ -1,0 +1,21 @@
+# experiments/config.yaml
+model:
+  embedding_dim: 64
+  hidden_dim: 128
+  use_gru: true
+  use_attention: true
+
+train_batch_size: 32
+val_batch_size: 32
+epochs: 50
+learning_rate: 0.0005
+weight_decay: 1e-5
+
+loss_weights:
+  sem: 1.0
+  flow: 0.5
+  rel: 1.0
+  pred: 1.0
+
+log_interval: 10
+save_path: "checkpoints/onn.pt"
