@@ -127,9 +127,7 @@ $$ \mathcal{L}{relation} = \text{MSE}(I{ij}^{GT}, I_{ij}^{pred}) $$
 
 * Intent Loss:
 
-$$
-\mathcal{L}_{intent} = -\sum_{c} y_c \log \hat{y}_c
-$$
+$$ \mathcal{L}{intent} = -\sum{c} y_c \log \hat{y}_c $$
 
 ---
 
