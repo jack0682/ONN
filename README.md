@@ -105,9 +105,7 @@ $$
 
 Total Loss:
 
-$$
-\mathcal{L}_{total} = \mathcal{L}_{pred} + \lambda_1 \mathcal{L}_{flow} + \lambda_2 \mathcal{L}_{relation} + \lambda_3 \mathcal{L}_{intent}
-$$
+$$ \mathcal{L}{total} = \mathcal{L}{pred} + \lambda_1 \mathcal{L}{flow} + \lambda_2 \mathcal{L}{relation} + \lambda_3 \mathcal{L}_{intent} $$
 
 * Prediction Loss:
 
