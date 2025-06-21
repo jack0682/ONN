@@ -43,9 +43,7 @@ $$
 
 ### 2. **Relational Interaction Function**
 
-$$
-I_{ij}(t) = \mathcal{G}(\mathcal{S}_i(t), \mathcal{S}_j(t), R_{ij}(t))
-$$
+$$ I_{ij}(t) = \mathcal{G}(\mathcal{S}_i(t), \mathcal{S}j(t), R{ij}(t)) $$
 
 Where $R_{ij}(t)$ is a spatiotemporal relation descriptor between entities.
 
