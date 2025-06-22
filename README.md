@@ -35,6 +35,7 @@ Context boundaries are not predefined; they arise where Ricci curvature of the r
 ### 1️⃣ Semantic State Tensor
 
 Each object $$( o_i $$) is represented by a semantic state vector:
+
 $$
 \mathcal{S}_i(t) =
 \begin{bmatrix}
@@ -47,73 +48,80 @@ $$
 $$
 
 where:
-- \( \mathbb{L}_i(t) \): locativeness (position, reference frame)
-- \( \mathbb{B}_i(t) \): boundedness (physical extent, affordance boundaries)
-- \( \mathbb{F}_i(t) \): formness (geometry, appearance)
-- \( \mathbb{I}_i(t) \): intentionality (affordance, functional role)
+- $\mathbb{L}_i(t)$: locativeness (position, reference frame)
+- $\mathbb{B}_i(t)$: boundedness (physical extent, affordance boundaries)
+- $\mathbb{F}_i(t)$: formness (geometry, appearance)
+- $\mathbb{I}_i(t)$: intentionality (affordance, functional role)
+
 
 Temporal evolution:
-\[
-\dot{\mathcal{S}}_i(t) = \frac{d}{dt} \mathcal{S}_i(t)
-\]
+
+$\dot{\mathcal{S}}_i(t) = \frac{d}{dt} \mathcal{S}_i(t)$
+
 
 ---
 
 ### 2️⃣ Relational Descriptor
 
 Semantic interaction:
-\[
-I_{ij}(t) = \mathcal{G}\big( \mathcal{S}_i(t), \mathcal{S}_j(t), R_{ij}(t) \big)
-\]
 
-where:
-\[
+$$ I_{ij}(t) = \mathcal{G}\big( \mathcal{S}_i(t), \mathcal{S}j(t), R{ij}(t) \big) $$
+
+where:  
+
+$$
 R_{ij}(t) =
 \begin{bmatrix}
 d_{ij}(t) \\
 \theta_{ij}(t) \\
 \phi_{ij}(t)
 \end{bmatrix}
-\]
+$$  
+
 with:
-- \( d_{ij} \): distance
-- \( \theta_{ij}, \phi_{ij} \): orientation descriptors
+- $d_{ij}$: distance  
+- $\theta_{ij}, \phi_{ij}$: orientation descriptors  
+
 
 ---
 
 ### 3️⃣ Relation Graph and Weights
 
 Graph:
-\[
-G_{\mathcal{C}} = (V_{\mathcal{C}}, E_{\mathcal{C}})
-\]
 
-Weights:
-\[
+$$
+G_{\mathcal{C}} = (V_{\mathcal{C}}, E_{\mathcal{C}})
+$$
+
+$$
 w(v_i) = \| \mathcal{S}_i \|_2
-\]
-\[
+$$
+
+$$
 w(e_{ij}) = \| I_{ij} \|_2
-\]
+$$
+
 
 ---
 
 ### 4️⃣ Forman Ricci Curvature
 
-For edge \( e_{ij} \):
-\[
-\operatorname{Ric}_F(e_{ij}) =
+For edge:
+
+$$\operatorname{Ric}_F(e_{ij}) =
 w(e_{ij}) \left[
 \frac{w(v_i) + w(v_j)}{w(e_{ij})}
-- \sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij})w(e_k)}}
-- \sum_{e_k \sim e_{ij}} \frac{w(v_j)}{\sqrt{w(e_{ij})w(e_k)}}
-\right]
-\]
+- \sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij}) w(e_k)}}
+- \sum_{e_k \sim e_{ij}} \frac{w(v_j)}{\sqrt{w(e_{ij}) w(e_k)}}
+\right]$$
 
-where:
-- \( e_k \sim e_{ij} \): edge \( e_k \) shares a node with \( e_{ij} \)
+where:  
+- $e_k \sim e_{ij}$: edge $e_k$ shares a node with $e_{ij}$  
 
 This curvature reflects local consistency or distortion in the relational web.
+
+
+
 
 ---
 
