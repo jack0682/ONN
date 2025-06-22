@@ -32,9 +32,7 @@ ONN departs from conventional neural classifiers by embedding **relational ontol
 
 > A context is defined not by absolute positions, but by its equivalence class under persistent homology:
 
-$$
-\mathcal{C}(t) \cong \mathcal{C}(t') \quad \text{if} \quad d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t')) < \epsilon_{\mathrm{context}}
-$$
+$$ I_{ij}(t) = \mathcal{G}\left( \mathcal{S}_i(t), \mathcal{S}j(t), R{ij}(t) \right) $$
 
 ---
 
