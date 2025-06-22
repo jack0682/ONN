@@ -1,32 +1,44 @@
-
 # 🧠 Ontology Neural Network (ONN)
 
-> **A Topological-Ricci Reasoning Framework for Contextual Relational Cognition**
+> **A Topological-Ricci Semantic Reasoning Framework for Contextual Relational Cognition**
 
 ---
 
 ## 📚 Overview
 
-Ontology Neural Network (ONN) redefines AI perception as **relational, topological, and temporally evolving cognition**. It views objects not as isolated labels, but as **participants in a fabric of interactions** where meaning arises from context and continuity. ONN grounds its architecture in **relational ontology**, ensuring that semantic structures are preserved even under deformation.
+The Ontology Neural Network (ONN) reimagines perception and reasoning as the construction of **relational, topological, and temporally evolving semantic structures**.  
+Whereas conventional AI seeks to classify or segment entities, ONN seeks to **map meaning itself** as the persistence and transformation of relational forms.  
+
+ONN embodies a **relation-first ontology**: the world is not made of isolated objects but of **webs of interaction**, where meaning is preserved by the **topological class of these webs** and their **smooth evolution through time**.
 
 ---
 
 ## 🔍 Philosophical Foundations
 
-- **Relational Ontology:** Objects are defined by their web of relations. Meaning is not inherent but emerges through context.
-- **Topological Meaning:** A context is preserved so long as the topology of relations remains invariant, regardless of metric deformations.
-- **Continuity of Context:** Contexts evolve smoothly, akin to Ricci flow, where curvature reveals boundaries and anomalies.
+- **Relational ontology:**  
+Objects do not possess intrinsic identity. Their meaning arises only through their relations within the semantic web.
+
+- **Context as a topological invariant:**  
+A context is meaningful if and only if its relational graph belongs to the same topological class across time:
+\[
+\mathcal{C}(t) \cong \mathcal{C}(t') \iff d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t')) < \epsilon_{\mathrm{context}}
+\]
+
+- **Continuity of existence:**  
+Change does not destroy meaning if the **global topological structure** is preserved, even when local configurations deform.
+
+- **Boundaries of meaning emerge naturally:**  
+Context boundaries are not predefined; they arise where Ricci curvature of the relation graph exhibits meaningful discontinuity.
 
 ---
 
 ## 📊 Mathematical Backbone
 
-### Semantic State Tensor
+### 1️⃣ Semantic State Tensor
 
-Each object \( o_i \):
-
+Each object \( o_i \) is represented by a semantic state vector:
 \[
-\mathcal{S}_i(t) =
+\mathcal{S}_i(t) = 
 \begin{bmatrix}
 \mathbb{L}_i(t) \\
 \mathbb{B}_i(t) \\
@@ -35,33 +47,63 @@ Each object \( o_i \):
 \end{bmatrix}
 \in \mathbb{R}^d
 \]
-
 where:
-- \( \mathbb{L}_i \): locativeness (position, reference frame)
-- \( \mathbb{B}_i \): boundedness (affordance)
-- \( \mathbb{F}_i \): formness (geometry)
-- \( \mathbb{I}_i \): intentionality
+- \( \mathbb{L}_i(t) \): locativeness (position, reference frame)
+- \( \mathbb{B}_i(t) \): boundedness (physical extent, affordance boundaries)
+- \( \mathbb{F}_i(t) \): formness (geometry, appearance)
+- \( \mathbb{I}_i(t) \): intentionality (affordance, functional role)
 
+Temporal evolution:
 \[
 \dot{\mathcal{S}}_i(t) = \frac{d}{dt} \mathcal{S}_i(t)
 \]
 
 ---
 
-### Relational Interaction
+### 2️⃣ Relational Descriptor
 
+Semantic interaction:
 \[
-I_{ij}(t) = \mathcal{G}(\mathcal{S}_i(t), \mathcal{S}_j(t), R_{ij}(t))
+I_{ij}(t) = \mathcal{G}\big( \mathcal{S}_i(t), \mathcal{S}_j(t), R_{ij}(t) \big)
+\]
+
+where:
+\[
+R_{ij}(t) =
+\begin{bmatrix}
+d_{ij}(t) \\
+\theta_{ij}(t) \\
+\phi_{ij}(t)
+\end{bmatrix}
+\]
+with:
+- \( d_{ij} \): distance
+- \( \theta_{ij}, \phi_{ij} \): orientation descriptors
+
+---
+
+### 3️⃣ Relation Graph and Weights
+
+Graph:
+\[
+G_{\mathcal{C}} = (V_{\mathcal{C}}, E_{\mathcal{C}})
+\]
+
+Weights:
+\[
+w(v_i) = \| \mathcal{S}_i \|_2
+\]
+\[
+w(e_{ij}) = \| I_{ij} \|_2
 \]
 
 ---
 
-### Forman Ricci Curvature
+### 4️⃣ Forman Ricci Curvature
 
 For edge \( e_{ij} \):
-
 \[
-\operatorname{Ric}_F(e_{ij}) = 
+\operatorname{Ric}_F(e_{ij}) =
 w(e_{ij}) \left[
 \frac{w(v_i) + w(v_j)}{w(e_{ij})}
 - \sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij})w(e_k)}}
@@ -70,13 +112,21 @@ w(e_{ij}) \left[
 \]
 
 where:
-- \( w(v_i) = \| \mathcal{S}_i \| \)
-- \( w(e_{ij}) = \| I_{ij} \| \)
+- \( e_k \sim e_{ij} \): edge \( e_k \) shares a node with \( e_{ij} \)
+
+This curvature reflects local consistency or distortion in the relational web.
 
 ---
 
-### Contextual Smoothness
+### 5️⃣ Contextual Ricci Smoothness
 
+Mean curvature:
+\[
+\bar{\operatorname{Ric}}_F(\mathcal{C}) =
+\frac{1}{|E_{\mathcal{C}}|} \sum_{e \in E_{\mathcal{C}}} \operatorname{Ric}_F(e)
+\]
+
+Smoothness loss:
 \[
 \mathcal{L}_{\mathrm{ricci\text{-}internal}} =
 \sum_{e \in E_{\mathcal{C}}}
@@ -87,40 +137,51 @@ where:
 
 ---
 
-### Boundary Detection
+### 6️⃣ Context Boundary Curvature
 
+Encourages distinct curvature at context edges:
 \[
 \mathcal{L}_{\mathrm{ricci\text{-}boundary}} =
 \sum_{\mathcal{C}_i, \mathcal{C}_j}
-\mathbb{I}(\mathrm{adjacent})
+\mathbb{I}(\text{adjacent}) \,
 \left(
 \operatorname{Ric}_F(\mathcal{C}_i) - \operatorname{Ric}_F(\mathcal{C}_j)
 \right)^{-2}
 \]
 
+where:
+\[
+\operatorname{Ric}_F(\mathcal{C}_i) = 
+\bar{\operatorname{Ric}}_F(\mathcal{C}_i)
+\]
+
 ---
 
-### Persistent Homology Loss
+### 7️⃣ Topological Preservation via Persistent Homology
 
+Topological invariant loss:
 \[
 \mathcal{L}_{\mathrm{ph}} =
 d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t'))
 \]
 
+Where:
+- \( d_{\mathrm{PH}} \) is the bottleneck or Wasserstein distance between persistence diagrams of the graphs.
+
 ---
 
-### Total Contextual Loss
+### 8️⃣ Context Loss
 
 \[
 \mathcal{L}_{\mathrm{context}} =
-\mathcal{L}_{\mathrm{ricci\text{-}internal}}
-+ \lambda_{\mathrm{boundary}} \mathcal{L}_{\mathrm{ricci\text{-}boundary}}
+\mathcal{L}_{\mathrm{ricci\text{-}internal}} 
++ \lambda_{\mathrm{boundary}} \mathcal{L}_{\mathrm{ricci\text{-}boundary}} 
 + \lambda_{\mathrm{ph}} \mathcal{L}_{\mathrm{ph}}
 \]
 
 ---
 
-## 🎯 Total Loss
+### 9️⃣ Full ONN Loss
 
 \[
 \mathcal{L}_{\mathrm{total}} =
@@ -133,36 +194,64 @@ d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t'))
 
 ---
 
-## 📏 Directory Structure
+## 🌌 Philosophical Significance (Detailed)
 
+ONN **models meaning as the persistence of relational structure**, not as the labeling of isolated objects.
 
+- **Relational persistence:**  
+  A cup next to a red ball remains a cup-next-to-red-ball, whether the ball moves slightly or the cup rotates.
 
-```
+- **Meaning as topological form:**  
+  Meaning persists if the global shape (homology) of the relational web remains unchanged.
+
+- **Curvature as boundary of being:**  
+  Where curvature jumps, context ends and another begins. These boundaries are **discovered, not imposed**.
+
+- **Existence as flow:**  
+  Contexts flow through time, like Ricci flow smooths curvature, adapting to change without rupturing identity.
+
+---
+
+## 📏 Project Structure
+
+``` bash
 ONN/
-├── data/                  # Semantic tensor dataset
-├── models/                # Core modules (embedding, encoder, interaction, predictor, Ricci, PH)
-├── train/                 # Training + loss + evaluator
-├── utils/                 # Logging, graph tools, PH computation
-├── experiments/           # Config + runners
+├── data/
+├── models/
+│ ├── embedding.py
+│ ├── encoder.py
+│ ├── interaction.py
+│ ├── ricci.py
+│ ├── ph.py
+├── train/
+│ ├── loss.py
+│ ├── trainer.py
+│ ├── evaluator.py
+├── utils/
+│ ├── graph_tools.py
+│ ├── logger.py
+├── experiments/
+│ ├── run_train.py
+│ ├── run_eval.py
 ├── README.md
 └── requirements.txt
 ```
 
----
-
-## 💡 **Future Directions**
-
-* Topological GNNs: E(n)-equivariant and Ricci-regularized architectures
-* Multi-modal contextual reasoning (vision, language, force)
-* Integration with symbolic reasoning and ontology planners
-* Online learning of novel relations and context splits
-* Meta-layer reasoning via D-LOGOS
 
 ---
 
-## ✉ **Contact**
+## 💡 Future Directions
 
-`jaehong_oh@csa-lab.ai`
+- Equivariant GNNs with Ricci regularization
+- Multi-modal fusion (vision + language + force)
+- Ontology-grounded symbolic planner integration
+- Online learning of new contexts
+- Meta-layer reasoning via D-LOGOS
+
+---
+
+## ✉ Contact
+
+`jaehong_oh@csa-lab.ai`  
 Refer to companion modules: **SEGO**, **IMAGO**, **LOGOS**
-
 
