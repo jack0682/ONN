@@ -20,7 +20,7 @@ Objects do not possess intrinsic identity. Their meaning arises only through the
 
 - **Context as a topological invariant:**  
 A context is meaningful if and only if its relational graph belongs to the same topological class across time:
-[ \mathcal{C}(t) \cong \mathcal{C}(t') \iff d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t')) < \epsilon_{\mathrm{context}} ]
+$\mathcal{C}(t) \cong \mathcal{C}(t') \iff d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t')) < \epsilon_{\mathrm{context}}$
 
 - **Continuity of existence:**  
 Change does not destroy meaning if the **global topological structure** is preserved, even when local configurations deform.
