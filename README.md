@@ -1,4 +1,6 @@
 
+---
+
 # 🧠 **Ontology Neural Network (ONN)**
 
 > **A Topological-Ricci Reasoning Framework for Contextual Relational Cognition**
@@ -32,7 +34,9 @@ ONN departs from conventional neural classifiers by embedding **relational ontol
 
 > A context is defined not by absolute positions, but by its equivalence class under persistent homology:
 
-$$ I_{ij}(t) = \mathcal{G}\left( \mathcal{S}_i(t), \mathcal{S}j(t), R{ij}(t) \right) $$
+$$
+\mathcal{C}(t) \cong \mathcal{C}(t') \quad \text{if} \quad d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t')) < \epsilon_{\mathrm{context}}
+$$
 
 ---
 
@@ -197,4 +201,4 @@ ONN/
 `jaehong_oh@csa-lab.ai`
 Refer to companion modules: **SEGO**, **IMAGO**, **LOGOS**
 
----
+
