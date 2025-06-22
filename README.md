@@ -82,14 +82,10 @@ $$ I_{ij}(t) = \mathcal{G}\left( \mathcal{S}_i(t), \mathcal{S}j(t), R{ij}(t) \ri
 
 For edge $e_{ij}$:
 
-$$
-\operatorname{Ric}_F(e_{ij}) =
-w(e_{ij}) \left[
-\frac{w(v_i) + w(v_j)}{w(e_{ij})}
-- \sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij})w(e_k)}}
-- \sum_{e_k \sim e_{ij}} \frac{w(v_j)}{\sqrt{w(e_{ij})w(e_k)}}
-\right]
-$$
+$$ \operatorname{Ric}F(e{ij}) = w(e_{ij}) \left[ \frac{w(v_i) + w(v_j)}{w(e_{ij})}
+
+\sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij})w(e_k)}}
+\sum_{e_k \sim e_{ij}} \frac{w(v_j)}{\sqrt{w(e_{ij})w(e_k)}} \right] $$
 
 where:
 
