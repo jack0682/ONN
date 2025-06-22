@@ -34,9 +34,9 @@ Context boundaries are not predefined; they arise where Ricci curvature of the r
 
 ### 1️⃣ Semantic State Tensor
 
-Each object \( o_i \) is represented by a semantic state vector:
-\[
-\mathcal{S}_i(t) = 
+Each object $$( o_i $$) is represented by a semantic state vector:
+$$
+\mathcal{S}_i(t) =
 \begin{bmatrix}
 \mathbb{L}_i(t) \\
 \mathbb{B}_i(t) \\
@@ -44,7 +44,8 @@ Each object \( o_i \) is represented by a semantic state vector:
 \mathbb{I}_i(t)
 \end{bmatrix}
 \in \mathbb{R}^d
-\]
+$$
+
 where:
 - \( \mathbb{L}_i(t) \): locativeness (position, reference frame)
 - \( \mathbb{B}_i(t) \): boundedness (physical extent, affordance boundaries)
