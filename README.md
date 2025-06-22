@@ -1,190 +1,210 @@
-# Ontology Neural Network (ONN)
-
-> **A Semantic Tensor-Based Reasoning Model for Relational Meaning Interpretation**
-
----
-
-## 📚 Overview
-
-Ontology Neural Network (ONN) is a novel architecture that interprets the meaning of objects not as isolated entities, but as relational, structural, and temporally evolving semantic forms. It grounds perception and reasoning on **relation-first ontological principles**, distinguishing itself from conventional category-based classifiers.
-
-### 🔍 Foundational Assumptions:
-
-* Objects are defined by **interactions** and **contexts**, not isolated labels.
-* Semantic understanding arises through **spatiotemporal transformations**.
-* The model operates through **tensor-based continuous transformations**, not symbolic rules.
-
-ONN aims to serve as the semantic backbone for cognitive architectures (e.g., SEGO, IMAGO) in human-robot collaboration.
+🌟 **Excellent. Let us now reconstruct your ONN README from the ground up**—
+👉 with **rigorous mathematical formalization**,
+👉 **philosophically grand and precise language**,
+👉 and **carefully planned, detailed explanations** that can serve as the foundation for your renewed draft.
 
 ---
 
-## 📊 Mathematical Backbone
+# 🧠 **Ontology Neural Network (ONN)**
 
-### 1. **Basis Semantic Tensor**
-
-Each object is characterized by a multi-dimensional semantic state:
-
-$$
-\mathcal{S}_i(t) = [\mathbb{L}_i(t), \mathbb{B}_i(t), \mathbb{F}_i(t), \mathbb{I}_i(t)] \in \mathbb{R}^d
-$$
-
-Where:
-
-* $\mathbb{L}$: Locativeness (spatial position and frame)
-* $\mathbb{B}$: Boundedness (physical boundary / affordance)
-* $\mathbb{F}$: Formness (geometry and visual patterns)
-* $\mathbb{I}$: Intentionality (use, goal, affordance semantics)
-
-And their temporal derivatives:
-
-$$
-\dot{\mathcal{S}}_i(t) = \frac{\partial \mathcal{S}_i(t)}{\partial t}
-$$
-
-### 2. **Relational Interaction Function**
-
-$$ I_{ij}(t) = \mathcal{G}(\mathcal{S}_i(t), \mathcal{S}j(t), R{ij}(t)) $$
-
-Where $R_{ij}(t)$ is a spatiotemporal relation descriptor between entities.
+> **A Topological-Ricci Reasoning Framework for Contextual Relational Cognition**
 
 ---
 
-## 🧱 ONN Architecture
+## 📚 **Overview**
 
-### 1. **Semantic Embedding Layer**
+The **Ontology Neural Network (ONN)** redefines how artificial systems perceive and reason about the world. ONN does not regard objects as isolated labels or fixed categories. Instead, it interprets **meaning as a relational, topological, and temporally evolving structure** where entities derive their identity from their participation in a web of interactions, context, and continuity.
 
-$$
-E_t = \text{Embed}_\theta(\mathcal{S}_i(t), \dot{\mathcal{S}}_i(t)) \in \mathbb{R}^d
-$$
+ONN departs from conventional neural classifiers by embedding **relational ontology principles** into its architecture. Here, the world is not a set of objects but a living fabric of **relations**, whose topology must remain **invariant under deformation**, and whose meaning is preserved through **smooth Ricci-like flows of context**.
 
-* Converts structured semantic states into dense vectors.
-* Uses Conv1D or Positional Encoding over sequences.
+---
 
-### 2. **Temporal Encoder**
+## 🔍 **Philosophical Foundations**
 
-$$
-H_t = \text{GRU}(E_t) \quad \text{or} \quad \text{Transformer}(E_t)
-$$
+1️⃣ **Relational Ontology**
 
-* Captures evolution of semantics over time.
-* Learns patterns of change (e.g., affordance shifts, object recontextualization).
+> Objects do not exist as self-sufficient entities. They are constituted by the **network of relations** they inhabit.
+> *Cup* means nothing in isolation; it is a “cup” because of its relation to the table, its affordances to the hand, its adjacency to the red ball.
 
-### 3. **Relational Fusion Module**
+2️⃣ **Meaning as Topological Invariant**
 
-$$
-Z_t = \text{Fuse}(H_t, I_{ij}(t))
-$$
+> The **meaning of a context** is preserved as long as the global topology of the relational structure remains unchanged—regardless of local positional or metric deformations.
 
-* Incorporates relational context.
-* Uses Graph Attention (GAT) or Relational Transformer.
-* Temporal weighting:
+3️⃣ **Continuity of Being through Ricci Flow**
+
+> Contexts are not static. Their **smooth evolution** in time is akin to Ricci flow, where curvature fields reveal the **boundaries of meaning**, the coherence of context, and the emergence of relational anomalies.
+
+4️⃣ **Context = Topological Class of Relations**
+
+> A context is defined not by absolute positions, but by its equivalence class under persistent homology:
 
 $$
-\alpha_{ij}(t) = \frac{\exp(\phi(H_i(t), H_j(t), \dot{\mathcal{S}}_j(t)))}{\sum_k \exp(\phi(H_i(t), H_k(t), \dot{\mathcal{S}}_k(t)))}
-$$
-
-### 4. **Reasoning Heads**
-
-* **Intent Classification**:
-
-$$
-\hat{y}_t = \text{Softmax}(W Z_t + b)
-$$
-
-* **State Forecasting**:
-
-$$
-\hat{\mathcal{S}}_i(t+1) = f(Z_t)
+\mathcal{C}(t) \cong \mathcal{C}(t') \quad \text{if} \quad d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t')) < \epsilon_{\mathrm{context}}
 $$
 
 ---
 
-## 🎯 Loss Function
+## 📊 **Mathematical Backbone**
 
-Total Loss:
+### 1️⃣ **Semantic Tensor State**
 
-$$ \mathcal{L}{total} = \mathcal{L}{pred} + \lambda_1 \mathcal{L}{flow} + \lambda_2 \mathcal{L}{relation} + \lambda_3 \mathcal{L}_{intent} $$
-
-* Prediction Loss:
+Each object $o_i$:
 
 $$
-\mathcal{L}_{pred} = \|\hat{\mathcal{S}}_i(t+1) - \mathcal{S}_i(t+1)\|_2^2
+\mathcal{S}_i(t) =
+\begin{bmatrix}
+\mathbb{L}_i(t) \\
+\mathbb{B}_i(t) \\
+\mathbb{F}_i(t) \\
+\mathbb{I}_i(t)
+\end{bmatrix}
+\in \mathbb{R}^d
 $$
 
-* Semantic Flow Consistency:
+where:
+
+* $\mathbb{L}_i$: locativeness (spatial position and reference frame)
+* $\mathbb{B}_i$: boundedness (physical boundary, affordance)
+* $\mathbb{F}_i$: formness (geometry, pattern)
+* $\mathbb{I}_i$: intentionality (goal-directed meaning)
+
+Temporal dynamics:
 
 $$
-\mathcal{L}_{flow} = 1 - \cos(\dot{\mathcal{S}}_i(t), \dot{\hat{\mathcal{S}}}_i(t))
+\dot{\mathcal{S}}_i(t) = \frac{d}{dt} \mathcal{S}_i(t)
 $$
-
-* Relational Accuracy:
-
-$$ \mathcal{L}{relation} = \text{MSE}(I{ij}^{GT}, I_{ij}^{pred}) $$
-
-* Intent Loss:
-
-$$ \mathcal{L}{intent} = -\sum{c} y_c \log \hat{y}_c $$
 
 ---
 
-## 📊 Evaluation Metrics
+### 2️⃣ **Relational Function**
 
-| Metric                      | Description                                      |
-| --------------------------- | ------------------------------------------------ |
-| `meaning_accuracy`          | Euclidean proximity of predicted semantic vector |
-| `flow_consistency`          | Cosine similarity of semantic flow direction     |
-| `relation_alignment_score`  | Normalized MSE of predicted relational tensors   |
-| `temporal_prediction_score` | Accuracy of time-sequence semantic forecasting   |
+$$
+I_{ij}(t) = \mathcal{G}\left( \mathcal{S}_i(t), \mathcal{S}_j(t), R_{ij}(t) \right)
+$$
 
 ---
 
-## 📏 Project Directory Structure
+### 3️⃣ **Forman Ricci Curvature on Relation Graph**
+
+For edge $e_{ij}$:
+
+$$
+\operatorname{Ric}_F(e_{ij}) =
+w(e_{ij}) \left[
+\frac{w(v_i) + w(v_j)}{w(e_{ij})}
+- \sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij})w(e_k)}}
+- \sum_{e_k \sim e_{ij}} \frac{w(v_j)}{\sqrt{w(e_{ij})w(e_k)}}
+\right]
+$$
+
+where:
+
+* $w(v_i) = \| \mathcal{S}_i \|$
+* $w(e_{ij}) = \| I_{ij} \|$
+
+---
+
+### 4️⃣ **Contextual Smoothness & Boundary**
+
+Context mean Ricci:
+
+$$
+\bar{\operatorname{Ric}}_F(\mathcal{C}) = \frac{1}{|E_{\mathcal{C}}|} \sum_{e \in E_{\mathcal{C}}} \operatorname{Ric}_F(e)
+$$
+
+Smoothness loss:
+
+$$
+\mathcal{L}_{\mathrm{ricci-internal}} = \sum_{e \in E_{\mathcal{C}}}
+\left( \operatorname{Ric}_F(e) - \bar{\operatorname{Ric}}_F(\mathcal{C}) \right)^2
+$$
+
+Boundary detection:
+
+$$
+\mathcal{L}_{\mathrm{ricci-boundary}} = 
+\sum_{\mathcal{C}_i,\mathcal{C}_j}
+\mathbb{I}(\mathrm{adjacent}) 
+\left( \operatorname{Ric}_F(\mathcal{C}_i) - \operatorname{Ric}_F(\mathcal{C}_j) \right)^{-2}
+$$
+
+---
+
+### 5️⃣ **Topological Invariant Preservation**
+
+$$
+\mathcal{L}_{\mathrm{ph}} = d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t'))
+$$
+
+---
+
+### 6️⃣ **Total Contextual Loss**
+
+$$
+\mathcal{L}_{\mathrm{context}} =
+\mathcal{L}_{\mathrm{ricci-internal}}
++ \lambda_{\mathrm{boundary}} \mathcal{L}_{\mathrm{ricci-boundary}}
++ \lambda_{\mathrm{ph}} \mathcal{L}_{\mathrm{ph}}
+$$
+
+---
+
+## 🎯 **Total Loss**
+
+$$
+\mathcal{L}_{\mathrm{total}} =
+\mathcal{L}_{\mathrm{pred}}
++ \lambda_1 \mathcal{L}_{\mathrm{flow}}
++ \lambda_2 \mathcal{L}_{\mathrm{relation}}
++ \lambda_3 \mathcal{L}_{\mathrm{intent}}
++ \lambda_4 \mathcal{L}_{\mathrm{context}}
+$$
+
+---
+
+## 🌌 **Philosophical Meaning**
+
+ONN embodies a vision of **AI as a participant in the web of meaning**, not as an external classifier.
+It teaches machines that:
+
+* A context is **not a configuration of points**, but a **structure of relations**, stable through deformations.
+* Meaning is **not categorical**, but **relational and topological**, persisting through the flux of time and space.
+* The world is **continuous**, yet structured, with boundaries revealed by the flow of curvature, not by rigid coordinates.
+
+ONN operationalizes **existence as a continuity of relations**, a dynamic fabric of interactions that can flex and bend, but not break without breaking meaning itself.
+
+---
+
+## 📏 **Directory Structure**
 
 ```
 ONN/
 ├── data/                  # Semantic tensor dataset
-│   ├── raw/
-│   ├── processed/
-│   └── utils.py
-│
-├── models/               # ONN core model components
-│   ├── embedding.py
-│   ├── encoder.py
-│   ├── interaction.py
-│   ├── predictor.py
-│   └── onn.py
-│
-├── train/                # Training and evaluation scripts
-│   ├── loss.py
-│   ├── trainer.py
-│   └── evaluator.py
-│
-├── utils/                # Support tools
-│   ├── logger.py
-│   ├── metrics.py
-│   └── graph_tools.py
-│
-├── experiments/          # Run scripts and config
-│   ├── run_train.py
-│   ├── run_eval.py
-│   └── config.yaml
-│
+├── models/                # Core modules (embedding, encoder, interaction, predictor, Ricci, PH)
+├── train/                 # Training + loss + evaluator
+├── utils/                 # Logging, graph tools, PH computation
+├── experiments/           # Config + runners
 ├── README.md
 └── requirements.txt
 ```
 
 ---
 
-## 💡 Future Extensions
+## 💡 **Future Directions**
 
-* Integration with ontology-grounded symbolic planners
-* Multi-modal perception fusion (vision + force + language)
-* D-LOGOS extension: Meta-layer self-evaluation and correction
-* Online learning of novel relations and affordances
-* Joint control loop wrapping with IMAGO compensators
+* Topological GNNs: E(n)-equivariant and Ricci-regularized architectures
+* Multi-modal contextual reasoning (vision, language, force)
+* Integration with symbolic reasoning and ontology planners
+* Online learning of novel relations and context splits
+* Meta-layer reasoning via D-LOGOS
 
 ---
 
-**Contact**: `jaehong_oh@csa-lab.ai`
+## ✉ **Contact**
 
-For complete architecture context, refer to the companion modules: `IMAGO`, `SEGO`, and `LOGOS`.
+`jaehong_oh@csa-lab.ai`
+Refer to companion modules: **SEGO**, **IMAGO**, **LOGOS**
+
+---
+
+👉 **If you'd like, I can produce this draft as a formatted LaTeX document or as a full README.md file ready for your repository. Please tell me your preference!** 🌱
