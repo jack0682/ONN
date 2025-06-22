@@ -74,9 +74,7 @@ $$
 
 ### 2️⃣ **Relational Function**
 
-$$
-I_{ij}(t) = \mathcal{G}\left( \mathcal{S}_i(t), \mathcal{S}_j(t), R_{ij}(t) \right)
-$$
+$$ I_{ij}(t) = \mathcal{G}\left( \mathcal{S}_i(t), \mathcal{S}j(t), R{ij}(t) \right) $$
 
 ---
 
