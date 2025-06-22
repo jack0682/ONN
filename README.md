@@ -108,12 +108,7 @@ $$
 
 For edge:
 
-$$\operatorname{Ric}_F(e_{ij}) =
-w(e_{ij}) \left[
-\frac{w(v_i) + w(v_j)}{w(e_{ij})}
-- \sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij}) w(e_k)}}
-- \sum_{e_k \sim e_{ij}} \frac{w(v_j)}{\sqrt{w(e_{ij}) w(e_k)}}
-\right]$$
+$$ \mathrm{Ric}F(e{ij}) = w(e_{ij}) \Bigg[ \frac{w(v_i) + w(v_j)}{w(e_{ij})} -\sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij}) w(e_k)}} -\sum_{e_k \sim e_{ij}} \frac{w(v_j)}{\sqrt{w(e_{ij}) w(e_k)}} \Bigg] $$
 
 where:  
 - $e_k \sim e_{ij}$: edge $e_k$ shares a node with $e_{ij}$  
@@ -122,82 +117,58 @@ This curvature reflects local consistency or distortion in the relational web.
 
 
 
-
 ---
 
 ### 5️⃣ Contextual Ricci Smoothness
 
 Mean curvature:
-\[
-\bar{\operatorname{Ric}}_F(\mathcal{C}) =
-\frac{1}{|E_{\mathcal{C}}|} \sum_{e \in E_{\mathcal{C}}} \operatorname{Ric}_F(e)
-\]
+
+$$ \bar{\mathrm{Ric}}F(\mathcal{C}) = \frac{1}{|E{\mathcal{C}}|} \sum_{e \in E_{\mathcal{C}}} \mathrm{Ric}_F(e) $$
 
 Smoothness loss:
-\[
-\mathcal{L}_{\mathrm{ricci\text{-}internal}} =
-\sum_{e \in E_{\mathcal{C}}}
-\left(
-\operatorname{Ric}_F(e) - \bar{\operatorname{Ric}}_F(\mathcal{C})
-\right)^2
-\]
+
+$$ \mathcal{L}{\mathrm{ricci\text{-}internal}} = \sum{e \in E_{\mathcal{C}}} \left( \mathrm{Ric}_F(e) - \bar{\mathrm{Ric}}_F(\mathcal{C}) \right)^2 $$
+
 
 ---
 
 ### 6️⃣ Context Boundary Curvature
 
 Encourages distinct curvature at context edges:
-\[
-\mathcal{L}_{\mathrm{ricci\text{-}boundary}} =
-\sum_{\mathcal{C}_i, \mathcal{C}_j}
-\mathbb{I}(\text{adjacent}) \,
-\left(
-\operatorname{Ric}_F(\mathcal{C}_i) - \operatorname{Ric}_F(\mathcal{C}_j)
-\right)^{-2}
-\]
+
+$$ \mathcal{L}{\mathrm{ricci\text{-}boundary}} = \sum{\mathcal{C}_i, \mathcal{C}_j} \mathbb{I}(\mathrm{adjacent}) \left( \mathrm{Ric}_F(\mathcal{C}_i) - \mathrm{Ric}_F(\mathcal{C}_j) \right)^{-2} $$
 
 where:
-\[
-\operatorname{Ric}_F(\mathcal{C}_i) = 
-\bar{\operatorname{Ric}}_F(\mathcal{C}_i)
-\]
+
+$$
+\mathrm{Ric}_F(\mathcal{C}_i) =
+\bar{\mathrm{Ric}}_F(\mathcal{C}_i)
+$$
 
 ---
 
 ### 7️⃣ Topological Preservation via Persistent Homology
 
 Topological invariant loss:
-\[
-\mathcal{L}_{\mathrm{ph}} =
-d_{\mathrm{PH}}(G_{\mathcal{C}}(t), G_{\mathcal{C}}(t'))
-\]
+
+$$ \mathcal{L}{\mathrm{ph}} = d{\mathrm{PH}} \big( G_{\mathcal{C}}(t), G_{\mathcal{C}}(t') \big) $$
+
 
 Where:
-- \( d_{\mathrm{PH}} \) is the bottleneck or Wasserstein distance between persistence diagrams of the graphs.
+- $d_{\mathrm{PH}}$ is the bottleneck or Wasserstein distance between persistence diagrams of the graphs.
+
 
 ---
 
 ### 8️⃣ Context Loss
 
-\[
-\mathcal{L}_{\mathrm{context}} =
-\mathcal{L}_{\mathrm{ricci\text{-}internal}} 
-+ \lambda_{\mathrm{boundary}} \mathcal{L}_{\mathrm{ricci\text{-}boundary}} 
-+ \lambda_{\mathrm{ph}} \mathcal{L}_{\mathrm{ph}}
-\]
+$$ \mathcal{L}{\mathrm{context}} = \mathcal{L}{\mathrm{ricci\text{-}internal}} +\lambda_{\mathrm{boundary}} \mathcal{L}{\mathrm{ricci\text{-}boundary}} +\lambda{\mathrm{ph}} \mathcal{L}_{\mathrm{ph}} $$
 
 ---
 
 ### 9️⃣ Full ONN Loss
 
-\[
-\mathcal{L}_{\mathrm{total}} =
-\mathcal{L}_{\mathrm{pred}}
-+ \lambda_1 \mathcal{L}_{\mathrm{flow}}
-+ \lambda_2 \mathcal{L}_{\mathrm{relation}}
-+ \lambda_3 \mathcal{L}_{\mathrm{intent}}
-+ \lambda_4 \mathcal{L}_{\mathrm{context}}
-\]
+$$ \mathcal{L}{\mathrm{total}} = \mathcal{L}{\mathrm{pred}} +\lambda_1 \mathcal{L}{\mathrm{flow}} +\lambda_2 \mathcal{L}{\mathrm{relation}} +\lambda_3 \mathcal{L}{\mathrm{intent}} +\lambda_4 \mathcal{L}{\mathrm{context}} $$
 
 ---
 
