@@ -98,10 +98,44 @@ where:
 - $\mathbb{F}_i(t)$: formness — geometric shape and appearance.
 - $\mathbb{I}_i(t)$: intentionality — functional role or purpose.
 
+**Learning of Tensor Elements:**  
+- `L, B, F` are typically derived from raw visual data: RGB-D images, point clouds, or segmentation outputs.
+- `I` is abstracted through supervised labels (if affordance annotations exist) or unsupervised clustering of co-occurring behavior patterns (e.g., grasp sequences, usage patterns).
+- Multimodal data (e.g., language annotations or action transcripts) can further guide `I`.
+
+
 **Temporal evolution:**  
 $$
 \dot{\mathcal{S}}_i(t) = \frac{d}{dt} \mathcal{S}_i(t)
 $$  
+
+---
+
+### 2️⃣ Relational Interaction Function `G`
+
+ONN defines:
+
+$$ I_{ij}(t) = G\big( \mathcal{S}_i(t), \mathcal{S}j(t), R{ij}(t) \big) $$
+
+#### How `G` is implemented:
+- **Not just concatenation.**  
+  `G` is realized via a learned **interaction module**, which may include:
+  - MLPs that process concatenated or bilinear combinations:  
+    `G = MLP([S_i, S_j, R_ij])`
+  - Attention mechanisms:
+    `G = Attention(S_i, S_j, R_ij)`  
+    (e.g., dot-product, additive, or graph attention forms)
+  - Graph convolutional transformations:
+    `G = GCN_layer(S_i, S_j, R_ij)`
+- The design is flexible and may combine these depending on application.
+
+✅ **In `interaction.py` this module implements:**
+- Parametric transformations of `[S_i, S_j, R_ij]`
+- Optional edge-wise attention
+- Residual connections to stabilize learning.
+
+
+
 
 ---
 
@@ -122,29 +156,67 @@ d_{ij}(t) \\
 \end{bmatrix}
 $$  
 
-$d_{ij}$ is distance, $\theta_{ij}, \phi_{ij}$ are orientation descriptors.
+- $d_{ij}$: Euclidean distance  
+- $\theta_{ij}, \phi_{ij}$: orientation descriptors
+
+✅ **`G` is implemented via:**  
+- MLPs over concatenated inputs: `[S_i, S_j, R_ij]`
+- Graph attention layers or relational transformers
+- GCN layers on dynamic relation graphs 
 
 ---
 
 ### 3️⃣ Relational Graph
 
-The scene is modeled as:
+#### Formula:
 
-$$
-G_{\mathcal{C}} = (V_{\mathcal{C}}, E_{\mathcal{C}})
-$$  
+$$ \mathrm{Ric}F(e{ij}) = w(e_{ij}) \Big[ \frac{w(v_i) + w(v_j)}{w(e_{ij})} -\sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij}) w(e_k)}} -\sum_{e_k \sim e_{ij}} \frac{w(v_j)}{\sqrt{w(e_{ij}) w(e_k)}} \Big] $$
 
-with:
+#### Efficiency:
+- **Challenge:** Computing Ricci curvature on large graphs can be O(N * degree²).
+- **Optimizations:**  
+  - Compute on sampled subgraphs or edge subsets (stochastic Ricci sampling)
+  - Use precomputed degree approximations
+  - Update curvature incrementally where graph changes locally
+  - Consider approximate curvature estimators (e.g., spectral proxies)
 
-$$ w(v_i) = | \mathcal{S}i |2, \quad w(e{ij}) = | I{ij} |_2 $$
+#### Curvature thresholds:
+- Ricci values are compared against learned or empirically chosen thresholds to detect meaningful context boundaries.
+
 
 ---
 
-### 4️⃣ Forman Ricci Curvature
+### 4️⃣ Persistent Homology & `d_PH` Choice
 
-Local relational smoothness is quantified by:
+- **`d_PH` Options:**  
+  - **Bottleneck distance**: sensitive to outlier topological features (good for strict invariance)
+  - **Wasserstein distance**: smoother, integrates distribution of persistence pairs (good for noisy data)
 
-$$ \mathrm{Ric}F(e{ij}) = w(e_{ij}) \Bigg[ \frac{w(v_i) + w(v_j)}{w(e_{ij})} -\sum_{e_k \sim e_{ij}} \frac{w(v_i)}{\sqrt{w(e_{ij}) w(e_k)}} -\sum_{e_k \sim e_{ij}} \frac{w(v_j)}{\sqrt{w(e_{ij}) w(e_k)}} \Bigg] $$
+- **Application Strategy:**  
+  - Bottleneck is preferred for detecting critical topological transitions.
+  - Wasserstein is used for smoother regularization over time.
+
+- **Efficiency tips:**  
+  - Sliding window PH updates (windowed time graph slices)
+  - Event-triggered PH recalculation (when major graph changes detected)
+  - Sparse persistence diagram tracking
+
+---
+
+### 5️⃣ Composite Losses with λ Optimization
+
+#### Full loss:
+
+$$ \mathcal{L}{\mathrm{total}} = \mathcal{L}{\mathrm{pred}} + \lambda_1 \mathcal{L}{\mathrm{flow}} + \lambda_2 \mathcal{L}{\mathrm{relation}} + \lambda_3 \mathcal{L}{\mathrm{intent}} + \lambda_4 \mathcal{L}{\mathrm{context}} $$
+
+#### λ tuning strategies:
+- Manual tuning based on validation metrics
+- Bayesian optimization of λ values
+- Meta-learning of λ through gradient-based learning
+- Neural architecture search (NAS) integrated λ search
+
+Each λ controls the model's **balance** between local predictive accuracy, relational integrity, and topological/curvature regularization.
+
 
 ---
 
