@@ -559,6 +559,6 @@ $$ \mathcal{L}{\mathrm{ONN-ORTSF}} = \mathcal{L}{\mathrm{pred}} + \lambda_1 \mat
 
 ## ✉ Contact
 
-`jaehong_oh@csa-lab.ai`  
+`jaehongoh1554@gmail.com`  
 Refer to companion modules: **SEGO**, **IMAGO**, **LOGOS**
 
