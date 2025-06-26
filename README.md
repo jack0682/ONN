@@ -27,6 +27,18 @@ It enables AI to act not on isolated perceptions, but on **holistic, relationall
 
 ---
 
+### 📄 Associated Paper
+
+This repository summarizes and implements key concepts from the following research work:
+
+> **"Ontology Neural Network and ORTSF: A Framework for Topological Reasoning and Delay-Robust Control"**  
+> [arXiv:2506.19277](https://arxiv.org/abs/2506.19277)
+
+The ONN model presented here provides the foundational representation mechanism for that architecture.
+
+
+---
+
 ## 🔍 Philosophical Foundations
 
 - **Relational ontology:**  
