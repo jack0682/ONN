@@ -1,0 +1,274 @@
+{
+  "timestamp": "2026-01-03T04:31:02.274370",
+  "config": {
+    "num_nodes": 3,
+    "num_edges": 20,
+    "embedding_dim": 32,
+    "num_episodes": 2,
+    "episode_length": 5,
+    "event_prob": 0.1,
+    "noise_std": 0.1,
+    "population_size": 4,
+    "num_generations": 5,
+    "w_lin_input_dim": 64,
+    "w_lin_output_dim": 32,
+    "w_lin_rank": 8,
+    "num_seeds": 1,
+    "save_results": true,
+    "output_dir": "experiments/results"
+  },
+  "experiments": {
+    "convergence": [
+      {
+        "test": "convergence",
+        "seed": 42,
+        "config": {
+          "num_nodes": 3,
+          "num_edges": 20,
+          "embedding_dim": 32,
+          "num_episodes": 2,
+          "episode_length": 5,
+          "event_prob": 0.1,
+          "noise_std": 0.1,
+          "population_size": 4,
+          "num_generations": 5,
+          "w_lin_input_dim": 64,
+          "w_lin_output_dim": 32,
+          "w_lin_rank": 8,
+          "num_seeds": 1,
+          "save_results": true,
+          "output_dir": "experiments/results"
+        },
+        "fitness_history": [
+          {
+            "generation": 0,
+            "best": -0.3051712903379693,
+            "mean": -0.3241339557724585,
+            "std": 0.015529101029967376
+          },
+          {
+            "generation": 1,
+            "best": -0.3069775019957912,
+            "mean": -0.3294882570974285,
+            "std": 0.019296762753752566
+          },
+          {
+            "generation": 2,
+            "best": -0.3061417760513021,
+            "mean": -0.33746224767185684,
+            "std": 0.018104330672223685
+          },
+          {
+            "generation": 3,
+            "best": -0.3067128366976273,
+            "mean": -0.32361318187413035,
+            "std": 0.0153463438574779
+          },
+          {
+            "generation": 4,
+            "best": -0.30691414277062257,
+            "mean": -0.3149346986569098,
+            "std": 0.007560518687720123
+          }
+        ],
+        "best_fitness_history": [
+          -0.3051712903379693,
+          -0.3051712903379693,
+          -0.3051712903379693,
+          -0.3051712903379693,
+          -0.3051712903379693
+        ],
+        "final_best_fitness": -0.3051712903379693,
+        "initial_fitness": -0.3051712903379693,
+        "improvement_ratio": 0.0,
+        "convergence_generation": 0,
+        "elapsed_time_seconds": 1.6120171546936035
+      }
+    ],
+    "comparison": [
+      {
+        "test": "comparison",
+        "seed": 42,
+        "results": {
+          "random_projection": {
+            "fitness": -0.017521589755817413,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723
+          },
+          "es_no_geometric": {
+            "fitness": 0.030744752619640492,
+            "generations": 2
+          },
+          "es_with_geometric": {
+            "fitness": 0.030744752619640492,
+            "generations": 2
+          }
+        },
+        "es_only_improvement_percent": 275.45210524279787,
+        "full_system_improvement_percent": 275.45210524279787,
+        "geometric_contribution_percent": 0.0
+      }
+    ],
+    "robustness": [
+      {
+        "test": "robustness",
+        "seed": 42,
+        "results": {
+          "noise_sensitivity": [
+            {
+              "noise_std": 0.01,
+              "fitness": 0.4647958598959001,
+              "violation": 1.4013958243195245e-14,
+              "prediction_accuracy": 0.9999999997703091
+            },
+            {
+              "noise_std": 0.05,
+              "fitness": 0.35832933633799235,
+              "violation": 2.0422470545190462e-14,
+              "prediction_accuracy": 0.9999999997703091
+            },
+            {
+              "noise_std": 0.1,
+              "fitness": 0.19646132438654962,
+              "violation": 1.6650175602682134e-14,
+              "prediction_accuracy": 0.9999999997703091
+            },
+            {
+              "noise_std": 0.2,
+              "fitness": -0.4015136115325034,
+              "violation": 2.3182794134493688e-14,
+              "prediction_accuracy": 0.9999999997703091
+            },
+            {
+              "noise_std": 0.5,
+              "fitness": -2.2768683552814135,
+              "violation": 3.003650727120312e-14,
+              "prediction_accuracy": 0.9999999997703091
+            }
+          ],
+          "event_recovery": [
+            {
+              "event_prob": 0.0,
+              "fitness": 0.17032814099665472,
+              "recovery_latency": 0.0
+            },
+            {
+              "event_prob": 0.1,
+              "fitness": 0.14712756089146628,
+              "recovery_latency": 0.0
+            },
+            {
+              "event_prob": 0.2,
+              "fitness": 0.1768803745436196,
+              "recovery_latency": 0.0
+            },
+            {
+              "event_prob": 0.3,
+              "fitness": 0.17058656661982774,
+              "recovery_latency": 0.0
+            }
+          ]
+        }
+      }
+    ],
+    "ablation": [
+      {
+        "test": "ablation",
+        "seed": 42,
+        "results": {
+          "base_only": {
+            "description": "Standard ONN-ES metrics only",
+            "fitness": -1.6175192616880247,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          },
+          "with_prediction": {
+            "description": "+ Prediction accuracy",
+            "fitness": -1.1175192618527885,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          },
+          "with_bidirectional": {
+            "description": "+ Bidirectional consistency",
+            "fitness": -0.8175192620505054,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          },
+          "with_cycle": {
+            "description": "+ Cycle consistency",
+            "fitness": -0.3175192621999666,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          },
+          "full_system": {
+            "description": "All components",
+            "fitness": -0.017521589755817413,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          }
+        }
+      }
+    ],
+    "scaling": [
+      {
+        "test": "scaling",
+        "seed": 42,
+        "results": {
+          "node_scaling": [
+            {
+              "num_nodes": 3,
+              "fitness": 0.17110285832758265,
+              "time_seconds": 0.040013790130615234,
+              "time_per_step": 0.0040013790130615234
+            },
+            {
+              "num_nodes": 5,
+              "fitness": -18.506958867303837,
+              "time_seconds": 0.12587285041809082,
+              "time_per_step": 0.012587285041809082
+            },
+            {
+              "num_nodes": 8,
+              "fitness": -34.65010326987404,
+              "time_seconds": 0.32251906394958496,
+              "time_per_step": 0.03225190639495849
+            },
+            {
+              "num_nodes": 10,
+              "fitness": -65.42475085889143,
+              "time_seconds": 0.5628979206085205,
+              "time_per_step": 0.05628979206085205
+            }
+          ],
+          "episode_scaling": [
+            {
+              "episode_length": 5,
+              "fitness": 0.15882614030713493,
+              "time_seconds": 0.040538787841796875
+            },
+            {
+              "episode_length": 10,
+              "fitness": -0.33262817341418327,
+              "time_seconds": 0.08281373977661133
+            },
+            {
+              "episode_length": 20,
+              "fitness": -0.3593691946101848,
+              "time_seconds": 0.17076396942138672
+            },
+            {
+              "episode_length": 50,
+              "fitness": -0.3291150573915903,
+              "time_seconds": 0.42846107482910156
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

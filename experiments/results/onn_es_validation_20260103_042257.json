@@ -1,0 +1,272 @@
+{
+  "timestamp": "2026-01-03T04:22:35.236750",
+  "config": {
+    "num_nodes": 3,
+    "num_edges": 20,
+    "embedding_dim": 32,
+    "num_episodes": 2,
+    "episode_length": 5,
+    "event_prob": 0.1,
+    "noise_std": 0.1,
+    "population_size": 4,
+    "num_generations": 5,
+    "w_lin_input_dim": 64,
+    "w_lin_output_dim": 32,
+    "num_seeds": 1,
+    "save_results": true,
+    "output_dir": "experiments/results"
+  },
+  "experiments": {
+    "convergence": [
+      {
+        "test": "convergence",
+        "seed": 42,
+        "config": {
+          "num_nodes": 3,
+          "num_edges": 20,
+          "embedding_dim": 32,
+          "num_episodes": 2,
+          "episode_length": 5,
+          "event_prob": 0.1,
+          "noise_std": 0.1,
+          "population_size": 4,
+          "num_generations": 5,
+          "w_lin_input_dim": 64,
+          "w_lin_output_dim": 32,
+          "num_seeds": 1,
+          "save_results": true,
+          "output_dir": "experiments/results"
+        },
+        "fitness_history": [
+          {
+            "generation": 0,
+            "best": -0.3223509202911401,
+            "mean": -0.3362556498225237,
+            "std": 0.012499981098752402
+          },
+          {
+            "generation": 1,
+            "best": -0.33330114151511614,
+            "mean": -0.34208270295167587,
+            "std": 0.006675961421097959
+          },
+          {
+            "generation": 2,
+            "best": -0.3480725339661177,
+            "mean": -0.3483748897170242,
+            "std": 0.0002831408106946839
+          },
+          {
+            "generation": 3,
+            "best": -0.3104938668384447,
+            "mean": -0.3314118635099672,
+            "std": 0.01687401240068269
+          },
+          {
+            "generation": 4,
+            "best": -0.30919115535907893,
+            "mean": -0.32494434499146774,
+            "std": 0.014956842347613322
+          }
+        ],
+        "best_fitness_history": [
+          -0.3223509202911401,
+          -0.3223509202911401,
+          -0.3223509202911401,
+          -0.3104938668384447,
+          -0.30919115535907893
+        ],
+        "final_best_fitness": -0.30919115535907893,
+        "initial_fitness": -0.3223509202911401,
+        "improvement_ratio": 0.040824217582372715,
+        "convergence_generation": 0,
+        "elapsed_time_seconds": 9.241604089736938
+      }
+    ],
+    "comparison": [
+      {
+        "test": "comparison",
+        "seed": 42,
+        "results": {
+          "random_projection": {
+            "fitness": -0.017521589755817413,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723
+          },
+          "es_no_geometric": {
+            "fitness": -0.016533886713269608,
+            "generations": 2
+          },
+          "es_with_geometric": {
+            "fitness": -0.016533886713269608,
+            "generations": 2
+          }
+        },
+        "es_only_improvement_percent": 5.6367412369503915,
+        "full_system_improvement_percent": 5.6367412369503915,
+        "geometric_contribution_percent": 0.0
+      }
+    ],
+    "robustness": [
+      {
+        "test": "robustness",
+        "seed": 42,
+        "results": {
+          "noise_sensitivity": [
+            {
+              "noise_std": 0.01,
+              "fitness": 0.4647958598959001,
+              "violation": 1.4013958243195245e-14,
+              "prediction_accuracy": 0.9999999997703091
+            },
+            {
+              "noise_std": 0.05,
+              "fitness": 0.35832933633799235,
+              "violation": 2.0422470545190462e-14,
+              "prediction_accuracy": 0.9999999997703091
+            },
+            {
+              "noise_std": 0.1,
+              "fitness": 0.19646132438654962,
+              "violation": 1.6650175602682134e-14,
+              "prediction_accuracy": 0.9999999997703091
+            },
+            {
+              "noise_std": 0.2,
+              "fitness": -0.4015136115325034,
+              "violation": 2.3182794134493688e-14,
+              "prediction_accuracy": 0.9999999997703091
+            },
+            {
+              "noise_std": 0.5,
+              "fitness": -2.2768683552814135,
+              "violation": 3.003650727120312e-14,
+              "prediction_accuracy": 0.9999999997703091
+            }
+          ],
+          "event_recovery": [
+            {
+              "event_prob": 0.0,
+              "fitness": 0.17032814099665472,
+              "recovery_latency": 0.0
+            },
+            {
+              "event_prob": 0.1,
+              "fitness": 0.14712756089146628,
+              "recovery_latency": 0.0
+            },
+            {
+              "event_prob": 0.2,
+              "fitness": 0.1768803745436196,
+              "recovery_latency": 0.0
+            },
+            {
+              "event_prob": 0.3,
+              "fitness": 0.17058656661982774,
+              "recovery_latency": 0.0
+            }
+          ]
+        }
+      }
+    ],
+    "ablation": [
+      {
+        "test": "ablation",
+        "seed": 42,
+        "results": {
+          "base_only": {
+            "description": "Standard ONN-ES metrics only",
+            "fitness": -1.6175192616880247,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          },
+          "with_prediction": {
+            "description": "+ Prediction accuracy",
+            "fitness": -1.1175192618527885,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          },
+          "with_bidirectional": {
+            "description": "+ Bidirectional consistency",
+            "fitness": -0.8175192620505054,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          },
+          "with_cycle": {
+            "description": "+ Cycle consistency",
+            "fitness": -0.3175192621999666,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          },
+          "full_system": {
+            "description": "All components",
+            "fitness": -0.017521589755817413,
+            "violation_mean": 3.046705200071011e-14,
+            "prediction_accuracy": 0.9999999996704723,
+            "cycle_consistency": 0.9999999997010776
+          }
+        }
+      }
+    ],
+    "scaling": [
+      {
+        "test": "scaling",
+        "seed": 42,
+        "results": {
+          "node_scaling": [
+            {
+              "num_nodes": 3,
+              "fitness": 0.17110285832758265,
+              "time_seconds": 0.04048895835876465,
+              "time_per_step": 0.004048895835876465
+            },
+            {
+              "num_nodes": 5,
+              "fitness": -18.506958867303837,
+              "time_seconds": 0.12699007987976074,
+              "time_per_step": 0.012699007987976074
+            },
+            {
+              "num_nodes": 8,
+              "fitness": -34.65010326987404,
+              "time_seconds": 0.32729506492614746,
+              "time_per_step": 0.032729506492614746
+            },
+            {
+              "num_nodes": 10,
+              "fitness": -65.42475085889143,
+              "time_seconds": 0.5761051177978516,
+              "time_per_step": 0.057610511779785156
+            }
+          ],
+          "episode_scaling": [
+            {
+              "episode_length": 5,
+              "fitness": 0.15882614030713493,
+              "time_seconds": 0.04119300842285156
+            },
+            {
+              "episode_length": 10,
+              "fitness": -0.33262817341418327,
+              "time_seconds": 0.08454108238220215
+            },
+            {
+              "episode_length": 20,
+              "fitness": -0.3593691946101848,
+              "time_seconds": 0.17239093780517578
+            },
+            {
+              "episode_length": 50,
+              "fitness": -0.3291150573915903,
+              "time_seconds": 0.43212223052978516
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

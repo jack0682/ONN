@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-01-03T04:22:11.409458",
+  "config": {
+    "num_nodes": 3,
+    "num_edges": 20,
+    "embedding_dim": 32,
+    "num_episodes": 2,
+    "episode_length": 5,
+    "event_prob": 0.1,
+    "noise_std": 0.1,
+    "population_size": 4,
+    "num_generations": 5,
+    "w_lin_input_dim": 64,
+    "w_lin_output_dim": 32,
+    "num_seeds": 1,
+    "save_results": true,
+    "output_dir": "experiments/results"
+  },
+  "experiments": {
+    "comparison": []
+  }
+}

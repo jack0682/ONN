@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: onn-es
+Version: 0.1.0
+Summary: Ontology Neural Network + Evolutionary Strategy
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.0.0
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: scipy>=1.10.0
+Requires-Dist: networkx>=3.0
+Requires-Dist: matplotlib>=3.7.0
+Requires-Dist: pytest>=7.0.0
+Provides-Extra: dev
+Requires-Dist: black; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: mypy; extra == "dev"

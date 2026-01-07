@@ -1,0 +1,411 @@
+# =====================================================================
+# 21_test_plan.ir.yml
+# =====================================================================
+# CSA (Collaborative Sensing Agent) - Smoke Test Plan
+#
+# Purpose:
+#   - Minimal, fast, high-value checks for CSA health.
+#   - Verifies critical path from HAL -> SEGO -> LOGOS -> IMAGO -> ORTSF.
+#
+# Update policy:
+#   - When making significant changes:
+#       1) Copy current file to spec/history/21_test_plan_YYYY-MM-DD.yml
+#       2) Then edit this file.
+# =====================================================================
+
+metadata:
+  system_name: "CSA (Collaborative Sensing Agent)"
+  plan_version: 0.1.0
+  last_updated: "2026-01-02"
+  last_updated_by: "Codex_Reality_Scanner"
+  based_on_architecture_version: "0.1.0"
+  based_on_impl_plan_version: "0.1.0"
+  based_on_code_status_version: "0.1.0"
+  notes:
+    - "Smoke tests are planned; implementation status is tracked in 30_code_status.ir.yml."
+    - "Framework-agnostic tests using mocks only (no hardware required)."
+
+# -------------------------------------------------------------------
+# 1. SMOKE TEST PHILOSOPHY & SCOPE
+# -------------------------------------------------------------------
+
+philosophy:
+  definition: >
+    Smoke tests are a minimal set of automated checks that verify whether
+    the system is in a basically usable state. They do NOT aim for high
+    coverage, but instead for high signal: if a smoke test fails, the
+    system is not safe to proceed with deeper testing or demo usage.
+  goals:
+    - "Detect glaring breakages in critical modules early."
+    - "Run quickly enough to be executed on every commit or before each deployment."
+    - "Be stable and deterministic (no flaky behavior)."
+  non_goals:
+    - "Comprehensive coverage of all edge cases."
+    - "Full performance benchmarking."
+    - "Long-running robustness or stress testing."
+
+scope:
+  included:
+    - "Core data flow across main modules (HAL -> Perception -> Cognition -> Control -> Application)."
+    - "At least one critical workflow end-to-end."
+    - "Basic health checks for each critical module."
+  excluded:
+    - "Exhaustive ML model evaluation."
+    - "Full-scale load tests or long-duration endurance tests."
+
+# -------------------------------------------------------------------
+# 2. ENVIRONMENTS & EXECUTION CONTEXT
+# -------------------------------------------------------------------
+
+environments:
+  - id: dev_local
+    description: "Developer laptop environment (Linux or macOS)."
+    requirements:
+      - "Python 3.10+ installed."
+      - "No hardware required; mocks or simulators are used."
+    trigger:
+      - "Run on every main branch commit (CI)."
+      - "Run before local feature branches are merged."
+
+  - id: robot_edge
+    description: "On-robot or edge computing device."
+    requirements:
+      - "Basic sensor mocks or safe test configuration available."
+    trigger:
+      - "Run before deployment to production robots."
+      - "Run after major system upgrades."
+
+execution_policies:
+  max_total_duration_minutes: 10
+  parallelization_allowed: true
+  must_be_automated: true
+  manual_steps_allowed: false
+
+# -------------------------------------------------------------------
+# 3. TEST LEVELS
+# -------------------------------------------------------------------
+
+test_levels:
+  - name: smoke
+    description: "Minimal, critical-path tests executed frequently."
+    required_for_merge: true
+    required_for_release: true
+  - name: unit
+    description: "Per-function or per-class tests (not fully described here)."
+    required_for_merge: false
+    required_for_release: true
+  - name: integration
+    description: "Module interaction tests (beyond minimal smoke)."
+    required_for_merge: false
+    required_for_release: case_by_case
+  - name: e2e
+    description: "Full end-to-end scenarios; may be heavier than smoke."
+    required_for_merge: false
+    required_for_release: case_by_case
+
+# -------------------------------------------------------------------
+# 4. SMOKE TEST CASE TEMPLATE (REFERENCE)
+# -------------------------------------------------------------------
+
+test_case_schema:
+  fields:
+    - { name: id,              type: string,  description: "Unique test case identifier." }
+    - { name: name,            type: string,  description: "Short human-readable name." }
+    - { name: level,           type: string,  description: "Test level, e.g. 'smoke'." }
+    - { name: module_ids,      type: list,    description: "Affected modules (from 10_architecture.ir.yml)." }
+    - { name: environment_ids, type: list,    description: "Applicable environments (from environments[])." }
+    - { name: description,     type: string,  description: "What the test is validating at a high level." }
+    - { name: preconditions,   type: list,    description: "What must be true before running the test." }
+    - { name: steps,           type: list,    description: "Sequence of actions (commands, API calls, etc.)." }
+    - { name: expected,        type: list,    description: "Expected observable outcomes." }
+    - { name: automation,      type: object,  description: "How this test is automated (command, script, CI job)." }
+    - { name: owner,           type: string,  description: "Responsible person/role." }
+    - { name: status,          type: string,  description: "Test implementation status: planned/in_progress/ready." }
+    - { name: last_run,        type: string,  description: "Timestamp of last successful execution (if known)." }
+
+# -------------------------------------------------------------------
+# 5. MODULE-CENTRIC SMOKE TEST MATRIX
+# -------------------------------------------------------------------
+
+module_smoke_matrix:
+  - module_id: hal_sensor_bridge
+    importance: "high"
+    rationale: "SensorBridge is required for any downstream reasoning or control."
+    smoke_tests:
+      - id: SMK_HAL_001
+        name: "SensorBridge mock observation generation"
+        level: "smoke"
+        environment_ids: ["dev_local"]
+        description: "Generate a mock SensorObservation and validate timestamp and frame_id fields."
+        preconditions:
+          - "Python 3.10+ installed."
+        steps:
+          - "Run 'pytest tests/smoke/test_sensor_bridge_basic.py -q'."
+        expected:
+          - "Process exits with code 0."
+          - "Observation includes nonzero timestamp_ns and valid frame_id."
+        automation:
+          command: "pytest tests/smoke/test_sensor_bridge_basic.py -q"
+          ci_job: "smoke_hal_sensor_bridge"
+        owner: "TODO_team_or_person"
+        status: "planned"
+        last_run: null
+
+  - module_id: hal_actuator_bridge
+    importance: "high"
+    rationale: "ActuatorBridge enforces safety limits for control output."
+    smoke_tests:
+      - id: SMK_HAL_002
+        name: "ActuatorBridge clamps command values"
+        level: "smoke"
+        environment_ids: ["dev_local"]
+        description: "Send a mock ActuatorCommand and verify outputs are clamped." 
+        preconditions:
+          - "Python 3.10+ installed."
+        steps:
+          - "Run 'pytest tests/smoke/test_actuator_bridge_basic.py -q'."
+        expected:
+          - "Process exits with code 0."
+          - "Values are within configured limits."
+        automation:
+          command: "pytest tests/smoke/test_actuator_bridge_basic.py -q"
+          ci_job: "smoke_hal_actuator_bridge"
+        owner: "TODO_team_or_person"
+        status: "planned"
+        last_run: null
+
+  - module_id: sego_gauge_anchor
+    importance: "high"
+    rationale: "SEGO produces RawSemanticGraph required by LOGOS."
+    smoke_tests:
+      - id: SMK_SEGO_001
+        name: "SEGO processes one observation"
+        level: "smoke"
+        environment_ids: ["dev_local"]
+        description: "Run SEGO on a mock observation and verify RawSemanticGraph output."
+        preconditions:
+          - "Python 3.10+ installed."
+        steps:
+          - "Run 'pytest tests/smoke/test_sego_one_frame.py -q'."
+        expected:
+          - "Process exits with code 0."
+          - "RawSemanticGraph has nodes or edge_candidates list (possibly empty)."
+        automation:
+          command: "pytest tests/smoke/test_sego_one_frame.py -q"
+          ci_job: "smoke_sego"
+        owner: "TODO_team_or_person"
+        status: "planned"
+        last_run: null
+
+  - module_id: logos_consensus_solver
+    importance: "high"
+    rationale: "LOGOS enforces topological validity and is core to reasoning."
+    smoke_tests:
+      - id: SMK_LOGOS_001
+        name: "LOGOS solver returns StabilizedGraph"
+        level: "smoke"
+        environment_ids: ["dev_local"]
+        description: "Run LOGOS on a tiny RawSemanticGraph and verify StabilizedGraph output."
+        preconditions:
+          - "Python 3.10+ installed."
+        steps:
+          - "Run 'pytest tests/smoke/test_logos_solver_basic.py -q'."
+        expected:
+          - "Process exits with code 0."
+          - "StabilizedGraph.global_energy is finite."
+        automation:
+          command: "pytest tests/smoke/test_logos_solver_basic.py -q"
+          ci_job: "smoke_logos"
+        owner: "TODO_team_or_person"
+        status: "planned"
+        last_run: null
+
+  - module_id: imago_intent_planner
+    importance: "high"
+    rationale: "IMAGO generates ReasoningTrace used by control."
+    smoke_tests:
+      - id: SMK_IMAGO_001
+        name: "IMAGO generates ReasoningTrace"
+        level: "smoke"
+        environment_ids: ["dev_local"]
+        description: "Run IMAGO with a mock StabilizedGraph and MissionGoal to produce a ReasoningTrace."
+        preconditions:
+          - "Python 3.10+ installed."
+        steps:
+          - "Run 'pytest tests/smoke/test_imago_trace_basic.py -q'."
+        expected:
+          - "Process exits with code 0."
+          - "ReasoningTrace.valid_until_ns is >= timestamp_ns."
+        automation:
+          command: "pytest tests/smoke/test_imago_trace_basic.py -q"
+          ci_job: "smoke_imago"
+        owner: "TODO_team_or_person"
+        status: "planned"
+        last_run: null
+
+  - module_id: ortsf_fabric_controller
+    importance: "high"
+    rationale: "ORTSF consumes ReasoningTrace and emits ActuatorCommand."
+    smoke_tests:
+      - id: SMK_ORTSF_001
+        name: "ORTSF produces ActuatorCommand"
+        level: "smoke"
+        environment_ids: ["dev_local"]
+        description: "Run ORTSF on mock inputs and verify ActuatorCommand output."
+        preconditions:
+          - "Python 3.10+ installed."
+        steps:
+          - "Run 'pytest tests/smoke/test_ortsf_fabric_basic.py -q'."
+        expected:
+          - "Process exits with code 0."
+          - "ActuatorCommand has correct mode and non-empty values."
+        automation:
+          command: "pytest tests/smoke/test_ortsf_fabric_basic.py -q"
+          ci_job: "smoke_ortsf"
+        owner: "TODO_team_or_person"
+        status: "planned"
+        last_run: null
+
+  - module_id: app_mission_control
+    importance: "medium"
+    rationale: "MissionControl publishes MissionGoal for IMAGO."
+    smoke_tests:
+      - id: SMK_APP_001
+        name: "MissionControl publishes MissionGoal"
+        level: "smoke"
+        environment_ids: ["dev_local"]
+        description: "Start MissionControl in mock mode and publish a goal message."
+        preconditions:
+          - "Python 3.10+ installed."
+        steps:
+          - "Run 'pytest tests/smoke/test_mission_control_basic.py -q'."
+        expected:
+          - "Process exits with code 0."
+          - "MissionGoal is emitted with required fields."
+        automation:
+          command: "pytest tests/smoke/test_mission_control_basic.py -q"
+          ci_job: "smoke_mission_control"
+        owner: "TODO_team_or_person"
+        status: "planned"
+        last_run: null
+
+  - module_id: eval_gate
+    importance: "high"
+    rationale: "Evaluation gates determine pass/fail for ES-tuned parameters."
+    smoke_tests:
+      - id: SMK_EVAL_001
+        name: "Eval gate computes metrics and gate result"
+        level: "smoke"
+        environment_ids: ["dev_local"]
+        description: "Run evaluation gate on synthetic metrics and verify GateReport."
+        preconditions:
+          - "Python 3.10+ installed."
+        steps:
+          - "Run 'pytest tests/smoke/test_eval_gates_basic.py -q'."
+        expected:
+          - "Process exits with code 0."
+          - "GateReport includes passed flag and failed_gates list."
+        automation:
+          command: "pytest tests/smoke/test_eval_gates_basic.py -q"
+          ci_job: "smoke_eval_gate"
+        owner: "TODO_team_or_person"
+        status: "planned"
+        last_run: null
+
+  - module_id: es_trainer
+    importance: "high"
+    rationale: "ES trainer tunes ONN solver parameters."
+    smoke_tests:
+      - id: SMK_ES_001
+        name: "ES pipeline basic generation"
+        level: "smoke"
+        environment_ids: ["dev_local"]
+        description: "Run a minimal ES loop and verify best_fitness is reported."
+        preconditions:
+          - "Python 3.10+ installed."
+        steps:
+          - "Run 'pytest tests/smoke/test_es_pipeline_basic.py -q'."
+        expected:
+          - "Process exits with code 0."
+          - "ESReport.best_fitness is finite."
+        automation:
+          command: "pytest tests/smoke/test_es_pipeline_basic.py -q"
+          ci_job: "smoke_es_trainer"
+        owner: "TODO_team_or_person"
+        status: "planned"
+        last_run: null
+
+# -------------------------------------------------------------------
+# 6. CRITICAL WORKFLOW SMOKE SCENARIOS (END-TO-END)
+# -------------------------------------------------------------------
+
+workflow_smoke:
+  - id: WF_SMK_001
+    name: "CSA end-to-end reasoning and control (mocked)"
+    description: >
+      Run a mocked pipeline from SensorBridge through SEGO, LOGOS, IMAGO, ORTSF,
+      and ActuatorBridge. Verify that an ActuatorCommand is produced.
+    involved_modules:
+      - hal_sensor_bridge
+      - sego_gauge_anchor
+      - logos_consensus_solver
+      - imago_intent_planner
+      - ortsf_fabric_controller
+      - hal_actuator_bridge
+      - app_mission_control
+    environment_ids: ["dev_local"]
+    preconditions:
+      - "All involved modules runnable in mock mode."
+    steps:
+      - "Run 'pytest tests/smoke/test_csa_e2e_pipeline.py -q'."
+    expected:
+      - "At least one ActuatorCommand is produced."
+      - "No unhandled exceptions or crashes."
+    automation:
+      command: "pytest tests/smoke/test_csa_e2e_pipeline.py -q"
+      ci_job: "e2e_smoke"
+    owner: "TODO_team_or_person"
+    status: "planned"
+    last_run: null
+
+# -------------------------------------------------------------------
+# 7. CI INTEGRATION & EXECUTION ORDER
+# -------------------------------------------------------------------
+
+ci_integration:
+  pipelines:
+    - name: "main_branch_smoke"
+      trigger: "push_to_main"
+      environment_id: "dev_local"
+      steps:
+        - "Run all smoke tests under tests/smoke."
+      fail_policy: "fail_fast"
+      artifact_retention: "7d"
+
+    - name: "pre_release_smoke"
+      trigger: "manual_or_tagged_release"
+      environment_id: "robot_edge"
+      steps:
+        - "Run selected smoke tests adapted to edge hardware."
+      fail_policy: "run_all"
+
+local_execution:
+  recommended_commands:
+    - description: "Run all smoke tests locally."
+      command: "pytest tests/smoke -q"
+    - description: "Run only operator smoke tests."
+      command: "pytest tests/smoke/test_sego_one_frame.py tests/smoke/test_logos_solver_basic.py tests/smoke/test_imago_trace_basic.py -q"
+
+# -------------------------------------------------------------------
+# 8. MAINTENANCE & REVIEW POLICY
+# -------------------------------------------------------------------
+
+maintenance:
+  review_frequency: "monthly"
+  responsible_roles:
+    - "test_owner"
+    - "system_architect"
+  rules:
+    - "Any new critical module in 10_architecture.ir.yml MUST have at least one smoke test defined here."
+    - "If a smoke test becomes flaky, it must be fixed or redesigned; flaky smoke tests are forbidden."
+    - "Before deprecating a module, its smoke tests should be clearly marked as deprecated or removed."

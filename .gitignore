@@ -1,0 +1,33 @@
+# User requested ignores
+.venv/
+.venv_repro/
+.gemini/
+.claude/
+*.pdf
+spec/
+
+# Python standard ignores
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# System ignores
+.DS_Store

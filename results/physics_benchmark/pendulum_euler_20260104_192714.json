@@ -1,0 +1,37 @@
+{
+  "mode": "euler",
+  "system": "pendulum",
+  "best_params": {
+    "step_size": 0.1,
+    "steps": 17.0,
+    "projection_alpha": 0.5,
+    "lambda_context": 4.176828729083798,
+    "lambda_ricci": 0.7000913611670971,
+    "lambda_smooth": 1.3563838904969732,
+    "lambda_var": 2.1656237890846204
+  },
+  "best_fitness": -88.24986421171363,
+  "best_metrics": {
+    "prediction_error": 8.3421457862854,
+    "state_error": 0.0,
+    "energy_violation": 0.09768897876962292,
+    "smoothness": 4.586087106403552,
+    "constraint_violation": 0.009388256983365864,
+    "convergence_rate": 0.0
+  },
+  "fitness_history": [
+    -88.8054414014183,
+    -88.67760980618972,
+    -88.59447079301513,
+    -88.53455544939365,
+    -88.5322077222391,
+    -88.42745712186587,
+    -88.4597971785742,
+    -88.31033948805008,
+    -88.24986421171363,
+    -88.33203398768909
+  ],
+  "generations": 10,
+  "total_time": 24.628999948501587,
+  "timestamp": "20260104_192714"
+}

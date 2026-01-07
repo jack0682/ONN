@@ -1,0 +1,126 @@
+{
+  "timestamp": "2026-01-03T04:39:35.473060",
+  "config": {
+    "num_nodes": 3,
+    "embedding_dim": 32,
+    "input_dim": 64,
+    "num_episodes": 2,
+    "episode_length": 5,
+    "es_population": 4,
+    "es_generations": 5,
+    "gd_lr": 0.001,
+    "gd_steps_per_gen": 5,
+    "num_seeds": 1,
+    "save_results": true,
+    "output_dir": "experiments/results"
+  },
+  "experiments": {
+    "hybrid_convergence": [
+      {
+        "seed": 42,
+        "es_fitness_history": [
+          {
+            "generation": 0,
+            "best": -0.017521589755817413,
+            "mean": -0.017521589755817413
+          },
+          {
+            "generation": 1,
+            "best": -0.017521589755817413,
+            "mean": -0.017521589755817413
+          },
+          {
+            "generation": 2,
+            "best": -0.017521589755817413,
+            "mean": -0.017521589755817413
+          },
+          {
+            "generation": 3,
+            "best": -0.017521589755817413,
+            "mean": -0.017521589755817413
+          },
+          {
+            "generation": 4,
+            "best": -0.017521589755817413,
+            "mean": -0.017521589755817413
+          }
+        ],
+        "gd_loss_history": [
+          {
+            "generation": 0,
+            "cycle": 0.0,
+            "smooth": 0.0,
+            "collapse": NaN,
+            "contrastive": NaN,
+            "reconstruction": NaN,
+            "total": NaN
+          },
+          {
+            "generation": 1,
+            "cycle": 0.0,
+            "smooth": 0.0,
+            "collapse": NaN,
+            "contrastive": NaN,
+            "reconstruction": NaN,
+            "total": NaN
+          },
+          {
+            "generation": 2,
+            "cycle": 0.0,
+            "smooth": 0.0,
+            "collapse": NaN,
+            "contrastive": NaN,
+            "reconstruction": NaN,
+            "total": NaN
+          },
+          {
+            "generation": 3,
+            "cycle": 0.0,
+            "smooth": 0.0,
+            "collapse": NaN,
+            "contrastive": NaN,
+            "reconstruction": NaN,
+            "total": NaN
+          },
+          {
+            "generation": 4,
+            "cycle": 0.0,
+            "smooth": 0.0,
+            "collapse": NaN,
+            "contrastive": NaN,
+            "reconstruction": NaN,
+            "total": NaN
+          }
+        ],
+        "final_best_fitness": -0.017521589755817413,
+        "best_hyperparams": {
+          "step_size": 0.001,
+          "steps": 28.0,
+          "projection_alpha": 0.5,
+          "lambda_context": 4.886685182642445,
+          "lambda_ricci": 0.5382767769129598,
+          "lambda_smooth": 0.1597019267733092,
+          "lambda_var": 5.162709405503701
+        },
+        "elapsed_seconds": 0.7097451686859131
+      }
+    ],
+    "comparison": [
+      {
+        "seed": 42,
+        "results": {
+          "hybrid": {
+            "fitness": -0.017521589755817413,
+            "es_params": 7,
+            "gd_params": 2048
+          },
+          "pure_es_lowrank": {
+            "fitness": 0.02981748278834062,
+            "total_params": 775
+          }
+        },
+        "hybrid_advantage": -0.047339072544158034
+      }
+    ]
+  }
+}

@@ -1,0 +1,98 @@
+# =============================================================================
+# CSA Constraint Defaults Configuration
+# =============================================================================
+#
+# Default hyperparameters for the LOGOS solver.
+# Reference: spec/02_onn_math_spec.md Section 4.2
+#
+# These values can be overridden at runtime via:
+#   - Environment variables (CSA_LAMBDA_DATA, etc.)
+#   - Explicit config in code
+#   - Dynamic updates via constraint_config_update channel
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Loss Function Weights (spec/02_onn_math_spec.md Section 4.2)
+# ---------------------------------------------------------------------------
+# L_total = λ_data * L_data + λ_phys * L_phys + λ_logic * L_logic
+
+weights:
+  # Data Fidelity: Keep state close to observation
+  # Higher = trust sensors more
+  lambda_data: 1.0
+
+  # Physical Validity: Penalize invalid overlaps
+  # Higher = enforce physics constraints more strongly
+  lambda_phys: 10.0
+
+  # Logical Consistency: TransE-style embedding loss
+  # Higher = enforce relational consistency more strongly
+  lambda_logic: 2.0
+
+# ---------------------------------------------------------------------------
+# Solver Parameters (spec/02_onn_math_spec.md Section 5)
+# ---------------------------------------------------------------------------
+
+solver:
+  # Maximum iterations per solve (hard real-time bound)
+  # Reference: spec/01_constraints.md Section 3.3
+  max_iterations: 10
+
+  # Gradient descent step size (η)
+  # Lower = more stable but slower convergence
+  learning_rate: 0.01
+
+  # Convergence tolerance (stop if L_total < tolerance)
+  tolerance: 1.0e-6
+
+  # Device for PyTorch computations
+  device: "cpu"
+
+# ---------------------------------------------------------------------------
+# Physical Constraints (spec/02_onn_math_spec.md Section 3.1)
+# ---------------------------------------------------------------------------
+
+physics:
+  # Overlap threshold for L_phys
+  # Penalize if Sim(B_i, B_j) > threshold
+  overlap_threshold: 0.5
+
+  # Minimum allowed separation between objects (meters)
+  min_separation: 0.01
+
+# ---------------------------------------------------------------------------
+# Edge Pruning
+# ---------------------------------------------------------------------------
+
+pruning:
+  # Edges with effective_strength < threshold are pruned
+  edge_prune_threshold: 0.1
+
+  # Minimum edge probability to keep
+  min_probability: 0.1
+
+# ---------------------------------------------------------------------------
+# Topological Constraints (spec/02_onn_math_spec.md Section 3.3)
+# ---------------------------------------------------------------------------
+
+topology:
+  # Maximum weighted degree per node (sparsity constraint)
+  # Σ_j w_ij ≤ K_max
+  max_weighted_degree: 10.0
+
+  # Maximum number of edges in graph
+  max_edges: 1000
+
+# ---------------------------------------------------------------------------
+# Stability Constraints (spec/02_onn_math_spec.md Section 5.2)
+# ---------------------------------------------------------------------------
+
+stability:
+  # Small-Gain Theorem bound
+  # γ_ONN * γ_ORTSF < 1
+  gamma_onn: 0.5
+  gamma_ortsf: 0.5
+
+  # Maximum velocity in tangent space
+  # ||v|| ≤ 1 / (γ_ORTSF * Δt_latency)
+  max_velocity_norm: 10.0

@@ -1,0 +1,37 @@
+{
+  "mode": "delta",
+  "system": "pendulum",
+  "best_params": {
+    "step_size": 0.1,
+    "steps": 17.0,
+    "projection_alpha": 0.5,
+    "lambda_context": 4.176828729083798,
+    "lambda_ricci": 0.7000913611670971,
+    "lambda_smooth": 1.3563838904969732,
+    "lambda_var": 2.1656237890846204
+  },
+  "best_fitness": -88.2498641688771,
+  "best_metrics": {
+    "prediction_error": 8.34214578151703,
+    "state_error": 0.0,
+    "energy_violation": 0.09768897876962292,
+    "smoothness": 4.586087110168055,
+    "constraint_violation": 0.009388257199898362,
+    "convergence_rate": 0.0
+  },
+  "fitness_history": [
+    -88.80544157711668,
+    -88.67760965535315,
+    -88.59447021290563,
+    -88.5345554498244,
+    -88.53220836344367,
+    -88.42745665873139,
+    -88.45979677502632,
+    -88.31033923073238,
+    -88.2498641688771,
+    -88.33203390656723
+  ],
+  "generations": 10,
+  "total_time": 25.08217191696167,
+  "timestamp": "20260104_192739"
+}

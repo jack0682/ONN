@@ -1,0 +1,443 @@
+# =====================================================================
+# 10_architecture.ir.yml
+# =====================================================================
+# CSA (Collaborative Sensing Agent) - Architecture Definition
+#
+# Purpose:
+#   - Defines the structural "Physics" of the CSA system.
+#   - Maps the Mathematical Operators (SEGO, LOGOS, IMAGO, ORTSF)
+#     defined in spec/02_onn_math_spec.md to concrete system modules.
+#   - Source of Truth for "Who does what" and data flow.
+#
+# Authority:
+#   - Derives from `spec/00_high_level_plan.md` (Vision)
+#   - Derives from `spec/02_onn_math_spec.md` (Math)
+# =====================================================================
+
+metadata:
+  system_name: "CSA (Collaborative Sensing Agent)"
+  version: "0.5.0"
+  description: >
+    A closed-loop cognitive architecture where existence is defined by 
+    topological relationships (ONN) and action is executed via a 
+    delay-robust semantic fabric (ORTSF).
+  last_updated_by: "Gemini_Architect"
+  related_specs:
+    - "00_high_level_plan.md"
+    - "01_constraints.md"
+    - "02_onn_math_spec.md"
+    - "11_interfaces.ir.yml"
+  notes:
+    - "Strict adherence to Clean Architecture: Dependencies point inwards/downwards."
+    - "Modules maps 1:1 to the Mathematical Operators defined in 02_onn_math_spec."
+    - "v0.5.0 adds Relation Encoder and ES/Eval modules (formalizing 'ghost' modules)."
+
+# -------------------------------------------------------------------
+# 1. SYSTEM OVERVIEW
+# -------------------------------------------------------------------
+
+system:
+  purpose: >
+    To enable robots to reason about dynamic, unstructured environments
+    using topological common sense (relationships > coordinates) and 
+    maintain stable control despite perception/network delays.
+  goals:
+    - "Maintain valid topological graphs (Common Sense) under noisy perception."
+    - "Guarantee control stability via Small-Gain Theorem (ORTSF) despite latency."
+    - "Self-correct logic violations (e.g., A inside B & B inside A) automatically."
+  non_goals:
+    - "Building a black-box end-to-end foundation model."
+    - "Creating a generic point-cloud SLAM library (we use semantic topology)."
+  primary_users:
+    - "Robotic Manipulation Systems"
+    - "Autonomous Mobile Robots (AMRs)"
+  assumptions:
+    - "Basic proprioception and raw sensor streams are available via HAL."
+    - "Compute budget allows for separate high-freq control and med-freq reasoning threads."
+
+# -------------------------------------------------------------------
+# 2. LAYERS
+# -------------------------------------------------------------------
+
+layers:
+  - id: layer_hal
+    name: "Hardware Abstraction Layer (HAL)"
+    description: >
+      Isolates physical hardware (cameras, grippers, bases) from the cognitive stack.
+      Responsible for raw data acquisition (Z_i) and low-level actuation (u).
+    responsibilities:
+      - "Standardize sensor streams (RGB-D, Proprioception)."
+      - "Abstract motor protocols."
+
+  - id: layer_perception
+    name: "Perception Layer (SEGO)"
+    description: >
+      The "Semantic Graph Ontology Mapper". Projects raw physical data onto 
+      the Semantic Manifold (Gauge Anchoring).
+    responsibilities:
+      - "Lift raw data Z to Tensor State S = [B, F, I]."
+      - "Propose candidate edges E based on geometric proximity."
+      - "Encode relational features for edges (x_obs)."
+
+  - id: layer_cognition
+    name: "Cognition Layer (LOGOS & IMAGO)"
+    description: >
+      The core reasoning loop. Enforces topological consistency (LOGOS) 
+      and generates intent flows (IMAGO).
+    responsibilities:
+      - "LOGOS: Minimize Energy L_total = L_data + L_phys + L_logic."
+      - "IMAGO: Compute Forman-Ricci curvature and Intent Trace."
+
+  - id: layer_control
+    name: "Control Layer (ORTSF)"
+    description: >
+      The "Ontological Real-Time Semantic Fabric". Consumes the Reasoning Trace 
+      and executes smooth, delay-compensated actions.
+    responsibilities:
+      - "Delay prediction (Small Gain Theorem)."
+      - "Trace interpolation and chasing."
+      - "High-frequency command generation."
+
+  - id: layer_app
+    name: "Application & Orchestration"
+    description: >
+      High-level mission definition, user interface, and external connectivity.
+      Also includes the Optimization Loop (ES/Eval).
+    responsibilities:
+      - "Mission goal setting."
+      - "Visualization of the Topological Graph."
+      - "Evolutionary Strategy (ES) Training."
+      - "Performance Evaluation and Gating."
+
+# -------------------------------------------------------------------
+# 3. MODULES
+# -------------------------------------------------------------------
+
+modules:
+  # --- HAL Layer ---
+  - id: hal_sensor_bridge
+    name: "SensorBridge"
+    layer: layer_hal
+    description: >
+      Aggregates raw data from cameras, lidar, and encoders.
+    responsibilities:
+      - "Fetch images and point clouds."
+      - "Fetch robot joint states (q, q_dot)."
+      - "Time-sync inputs."
+    inputs:
+      - type: hardware_signal
+        name: raw_device_streams
+        description: "Physical signals from drivers."
+    outputs:
+      - type: stream
+        name: sensor_observation_stream
+        schema: SensorObservation
+        description: "Raw Z_i data: RGB-D, Proprioception, timestamps."
+
+  - id: hal_actuator_bridge
+    name: "ActuatorBridge"
+    layer: layer_hal
+    description: >
+      Converts normalized control signals into hardware-specific motor commands.
+    responsibilities:
+      - "Safety limits (velocity/torque clipping)."
+      - "Hardware communication (CAN/EtherCAT/Serial)."
+    inputs:
+      - type: stream
+        name: actuator_command_stream
+        schema: ActuatorCommand
+        description: "Normalized torque/velocity commands."
+    outputs:
+      - type: hardware_signal
+        name: motor_signals
+        description: "Physical signals to drivers."
+
+  # --- Perception Layer (SEGO) ---
+  - id: sego_gauge_anchor
+    name: "SEGO_GaugeAnchor"
+    layer: layer_perception
+    description: >
+      The SEGO Operator (E_SEGO). Transforms raw sensor data into initial Tensor States.
+    responsibilities:
+      - "Encoder: Z -> S = [B, F, I] (Bound, Form, Intent)."
+      - "Geometric filtering for Edge Candidates E_ij."
+    inputs:
+      - type: stream
+        name: sensor_observation_stream
+        schema: SensorObservation
+        description: "Raw sensor data from HAL."
+    outputs:
+      - type: stream
+        name: raw_graph_stream
+        schema: RawSemanticGraph
+        description: "Unstabilized Graph G_raw = (S, E) with potential contradictions."
+    depends_on: [hal_sensor_bridge]
+
+  - id: onn_relation_encoder
+    name: "RelationEncoder"
+    layer: layer_perception
+    description: >
+      Builds edge-level relation embeddings x_obs from detections/pair features.
+      Supports Option-3 relation embedding (x_e in R^32).
+    responsibilities:
+      - "Compute pair features phi_ij from detections/edges."
+      - "Parameterize x_obs embeddings for edge candidates."
+      - "Apply candidate edge gating (kNN / cutoff)."
+    inputs:
+      - type: stream
+        name: raw_graph_stream
+        schema: RawSemanticGraph
+        description: "Raw graph with node proposals."
+    outputs:
+      - type: stream
+        name: edge_embedding_stream
+        schema: EdgeEmbeddingState
+        description: "Edge embedding observations x_obs for candidate edges."
+    depends_on: [sego_gauge_anchor]
+
+  # --- Cognition Layer (LOGOS & IMAGO) ---
+  - id: logos_consensus_solver
+    name: "LOGOS_Solver"
+    layer: layer_cognition
+    description: >
+      The LOGOS Operator (P_LOGOS). Iteratively projects the graph onto the Constraint Manifold C.
+      Solves for topological validity by minimizing Global Energy.
+    responsibilities:
+      - "Compute Gradients: dL/dS."
+      - "Apply Projection Operator P_C."
+      - "Update Edge Weights w_ij."
+      - "Consume EdgeEmbeddingState (x_obs) for relation constraints."
+    inputs:
+      - type: stream
+        name: raw_graph_stream
+        schema: RawSemanticGraph
+        description: "Input graph proposals."
+      - type: stream
+        name: edge_embedding_stream
+        schema: EdgeEmbeddingState
+        description: "Relation embeddings for edges."
+      - type: config
+        name: onn_solver_config_stream
+        schema: ONNSolverConfig
+        description: "Solver weights (lambda) and limits."
+    outputs:
+      - type: stream
+        name: stabilized_graph_stream
+        schema: StabilizedGraph
+        description: "Valid Graph G_valid satisfying invariants."
+    depends_on: [sego_gauge_anchor, onn_relation_encoder]
+
+  - id: imago_intent_planner
+    name: "IMAGO_Planner"
+    layer: layer_cognition
+    description: >
+      The IMAGO Operator (R_IMAGO). Computes curvature and generates the Intent Flow.
+    responsibilities:
+      - "Calculate Forman-Ricci Curvature (Ric_e)."
+      - "Cluster functional groups based on curvature bottlenecks."
+      - "Generate Reasoning Trace via Geodesic Shooting."
+    inputs:
+      - type: stream
+        name: stabilized_graph_stream
+        schema: StabilizedGraph
+        description: "Topologically valid graph."
+      - type: stream
+        name: mission_goal
+        schema: MissionGoal
+        description: "High-level user intent."
+    outputs:
+      - type: stream
+        name: reasoning_trace_stream
+        schema: ReasoningTrace
+        description: "Continuous manifold trajectory defining desired future state."
+    depends_on: [logos_consensus_solver]
+
+  # --- Control Layer (ORTSF) ---
+  - id: ortsf_fabric_controller
+    name: "ORTSF_Fabric"
+    layer: layer_control
+    description: >
+      The Delay-Robust Control Fabric. Chases the Reasoning Trace.
+    responsibilities:
+      - "Predict state x(t + delta) using Small-Gain Model."
+      - "Interpolate Reasoning Trace."
+      - "Generate smooth control actions (u)."
+    inputs:
+      - type: stream
+        name: reasoning_trace_stream
+        schema: ReasoningTrace
+        description: "Target trajectory."
+      - type: stream
+        name: sensor_observation_stream
+        schema: SensorObservation
+        description: "High-freq proprioception for feedback."
+    outputs:
+      - type: stream
+        name: actuator_command_stream
+        schema: ActuatorCommand
+        description: "Computed motor commands."
+    depends_on: [imago_intent_planner, hal_sensor_bridge]
+
+  # --- Application Layer ---
+  - id: app_mission_control
+    name: "MissionControl"
+    layer: layer_app
+    description: >
+      Orchestrator for user goals and system monitoring.
+    responsibilities:
+      - "Set MissionGoal (e.g., 'Pour water')."
+      - "Visualize live Graph and Trace."
+    inputs:
+      - type: stream
+        name: stabilized_graph_stream
+        schema: StabilizedGraph
+        description: "For visualization."
+    outputs:
+      - type: stream
+        name: mission_goal
+        schema: MissionGoal
+        description: "To IMAGO."
+    depends_on: [logos_consensus_solver]
+
+  - id: es_trainer
+    name: "ES_Trainer"
+    layer: layer_app
+    description: >
+      Evolutionary Strategy trainer for ONN/LOGOS parameters.
+      Uses CMA-ES to optimize solver and projection hyperparameters.
+    responsibilities:
+      - "Sample candidate parameter vectors (theta)."
+      - "Run episodic evaluations and compute fitness."
+      - "Emit best parameters and training reports."
+    inputs:
+      - type: stream
+        name: eval_metrics_stream
+        schema: EvalMetrics
+        description: "Aggregated evaluation metrics from gate evaluator."
+    outputs:
+      - type: stream
+        name: onn_solver_config_stream
+        schema: ONNSolverConfig
+        description: "Updated solver/projection hyperparameters."
+      - type: stream
+        name: es_report_stream
+        schema: ESReport
+        description: "Training progress and best-theta reports."
+    depends_on: [logos_consensus_solver, imago_intent_planner, eval_gate]
+
+  - id: eval_gate
+    name: "EvaluationGate"
+    layer: layer_app
+    description: >
+      Computes metrics and applies acceptance gates for ONN/ES outcomes.
+    responsibilities:
+      - "Compute violation, drift, ricci energy, smoothness, latency."
+      - "Apply gate thresholds (accept/reject)."
+      - "Log reports for reproducibility."
+    inputs:
+      - type: stream
+        name: stabilized_graph_stream
+        schema: StabilizedGraph
+        description: "Graphs from LOGOS."
+      - type: stream
+        name: reasoning_trace_stream
+        schema: ReasoningTrace
+        description: "Traces from IMAGO."
+    outputs:
+      - type: stream
+        name: eval_metrics_stream
+        schema: EvalMetrics
+        description: "Metrics for ES fitness and validation."
+      - type: stream
+        name: gate_report_stream
+        schema: GateReport
+        description: "Pass/fail gate results."
+    depends_on: [logos_consensus_solver, imago_intent_planner, ortsf_fabric_controller]
+
+# -------------------------------------------------------------------
+# 4. WORKFLOWS
+# -------------------------------------------------------------------
+
+workflows:
+  - id: wf_reasoning_loop
+    name: "The Cognitive Loop (Slow)"
+    description: >
+      The process of transforming raw pixels into a valid topological plan.
+      Runs at lower frequency (e.g., 5-10Hz).
+    trigger: "New SensorObservation available"
+    steps:
+      - order: 1
+        module: hal_sensor_bridge
+        action: "Acquire Z_i"
+      - order: 2
+        module: sego_gauge_anchor
+        action: "Project Z_i -> S_i, E_ij (Raw Graph)"
+      - order: 3
+        module: onn_relation_encoder
+        action: "Compute Edge Embeddings (x_obs)"
+      - order: 4
+        module: logos_consensus_solver
+        action: "Solve P_C(S) -> G_valid (Stabilized Graph)"
+      - order: 5
+        module: imago_intent_planner
+        action: "Flow Intent -> R_trace (Reasoning Trace)"
+
+  - id: wf_control_loop
+    name: "The Action Loop (Fast)"
+    description: >
+      The process of executing the plan robustly against delay.
+      Runs at high frequency (e.g., 100Hz-1kHz).
+    trigger: "Control timer tick"
+    steps:
+      - order: 1
+        module: ortsf_fabric_controller
+        action: "Sample R_trace (latest) and Proprioception"
+      - order: 2
+        module: ortsf_fabric_controller
+        action: "Predict x(t+dt) and compute control u"
+      - order: 3
+        module: hal_actuator_bridge
+        action: "Apply u to motors"
+
+  - id: wf_correction
+    name: "The Self-Correction Loop"
+    description: >
+      Implicit feedback where constraint violations adjust the manifold.
+    trigger: "LOGOS solver convergence failure or high energy"
+    steps:
+      - order: 1
+        module: logos_consensus_solver
+        action: "Detect high energy E (contradictions)"
+      - order: 2
+        module: logos_consensus_solver
+        action: "Update internal weights w_ij (Learning/Adaptation)"
+      - order: 3
+        module: logos_consensus_solver
+        action: "Re-solve for new stable state"
+
+  - id: wf_optimization_loop
+    name: "The Learning Loop (Episodic)"
+    description: >
+      Evolutionary loop for optimizing solver hyperparameters.
+    trigger: "Training Schedule / User Request"
+    steps:
+      - order: 1
+        module: es_trainer
+        action: "Sample new parameters (theta) via CMA-ES"
+      - order: 2
+        module: app_mission_control
+        action: "Execute Episode (e.g., Pour Task)"
+      - order: 3
+        module: eval_gate
+        action: "Compute Fitness (Energy, Latency, Drift)"
+      - order: 4
+        module: es_trainer
+        action: "Update ES Distribution (Tell)"
+
+# -------------------------------------------------------------------
+# 5. OPEN QUESTIONS
+# -------------------------------------------------------------------
+
+open_questions:
+  - "How do we handle the frequency mismatch between SEGO (Vision) and LOGOS if LOGOS takes too long to converge?"
+  - "Should ORTSF have a direct 'reflex' bypass for emergency stops, bypassing the Trace?"

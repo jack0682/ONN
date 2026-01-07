@@ -1,0 +1,41 @@
+{
+  "mode": "delta",
+  "best_params": {
+    "step_size": 0.001,
+    "steps": 16.0,
+    "projection_alpha": 1.0,
+    "lambda_context": 4.777632699509166,
+    "lambda_ricci": 0.01,
+    "lambda_smooth": 0.01,
+    "lambda_var": 6.182144400963673
+  },
+  "best_fitness": -2.763655287027443,
+  "best_metrics": {
+    "violation_mean": 8.411452494723673e-15,
+    "violation_std": 1.1984805424802116e-15,
+    "loss_mean": 3.0239768028259277,
+    "loss_std": 1.1573553629953615,
+    "convergence_rate": 1.0,
+    "iterations_mean": 3.8333333333333335,
+    "drift_mean": 2.3967848420143127
+  },
+  "fitness_history": [
+    -17.77871886692195,
+    -4.013215885528673,
+    -3.221302435795586,
+    -2.7910306079355736,
+    -2.763655287027443
+  ],
+  "generations": 5,
+  "total_time": 0.37482595443725586,
+  "config": {
+    "population_size": 4,
+    "num_episodes": 2,
+    "steps_per_episode": 3,
+    "embedding_dim": 32,
+    "optimize_beta": false,
+    "fixed_delta_beta": 1.0,
+    "seed": 42
+  },
+  "timestamp": "20260104_191811"
+}

@@ -1,0 +1,3287 @@
+metadata:
+  system_name: "CSA (Collaborative Sensing Agent)"
+  plan_version: "0.2.1"
+  last_updated: "2026-01-02T18:41:28Z"
+  last_updated_by: "Codex_Master_Planner"
+  based_on_architecture_version: "0.3.0"
+  based_on_interfaces_version: "0.1.0"
+  based_on_math_spec: "02_onn_math_spec.md"
+  based_on_code_status: "30_code_status.ir.yml"
+  based_on_constraints: "01_constraints.md"
+  notes:
+    - "Framework-agnostic core; adapters only in HAL and app."
+    - "LOGOS loss/gradients must use PyTorch autograd per 02_onn_math_spec.md."
+    - "Plan reflects current implementation and remaining compliance gaps."
+    - "Current focus: ONN-ES pipeline (edge embeddings, PC solver, ES trainer, eval gates)."
+
+strategy:
+  monorepo: true
+  root_structure:
+    - "spec/"
+    - "src/"
+    - "tests/"
+    - "config/"
+    - "scripts/"
+  primary_languages:
+    - "Python 3.10+"
+    - "C++17 (optional adapters)"
+  build_systems:
+    - name: "python_pyproject"
+      scope: "Python packages under src/"
+    - name: "cmake"
+      scope: "Optional C++ adapters"
+
+focus:
+  area: "onn_es"
+  description: "Prioritize edge-embedding stabilization, ES training loop, and eval gates for ONN-ES integration."
+  task_ids:
+    - "CPL_010"
+    - "CPL_011"
+    - "CPL_012"
+    - "IMPL_023"
+    - "IMPL_024"
+    - "IMPL_025"
+    - "TEST_003"
+    - "TEST_004"
+    - "TEST_005"
+    - "TEST_006"
+
+# -------------------------------------------------------------------
+# MODULE TO DIRECTORY MAP
+# -------------------------------------------------------------------
+
+directories:
+  - module_id: "hal_sensor_bridge"
+    path: "src/hal/sensor_bridge"
+    description: "HAL sensor aggregation and time sync."
+    layer: "layer_hal"
+    language: "Python 3.10+"
+    build_unit: "hal_sensor_bridge_pkg"
+    internal_dependencies: []
+    external_dependencies:
+      - "numpy"
+    interfaces_used:
+      - "SensorObservation"
+      - "sensor_observation_stream"
+
+  - module_id: "hal_actuator_bridge"
+    path: "src/hal/actuator_bridge"
+    description: "HAL actuator command translation with safety clamps."
+    layer: "layer_hal"
+    language: "Python 3.10+"
+    build_unit: "hal_actuator_bridge_pkg"
+    internal_dependencies: []
+    external_dependencies:
+      - "numpy"
+    interfaces_used:
+      - "ActuatorCommand"
+      - "actuator_command_stream"
+
+  - module_id: "sego_gauge_anchor"
+    path: "src/onn/ops"
+    description: "SEGO operator for gauge anchoring."
+    layer: "layer_perception"
+    language: "Python 3.10+"
+    build_unit: "onn_ops_pkg"
+    internal_dependencies:
+      - "hal_sensor_bridge"
+    external_dependencies:
+      - "numpy"
+    interfaces_used:
+      - "SensorObservation"
+      - "RawSemanticGraph"
+      - "raw_graph_stream"
+
+  - module_id: "onn_relation_encoder"
+    path: "src/onn/relation"
+    description: "Relation embedding parameterization for edge candidates."
+    layer: "layer_perception"
+    language: "Python 3.10+"
+    build_unit: "onn_relation_pkg"
+    internal_dependencies:
+      - "sego_gauge_anchor"
+    external_dependencies:
+      - "numpy"
+    interfaces_used:
+      - "RawSemanticGraph"
+      - "EdgeEmbeddingState"
+      - "edge_embedding_stream"
+
+  - module_id: "logos_consensus_solver"
+    path: "src/onn/ops"
+    description: "LOGOS operator for projection-consensus."
+    layer: "layer_cognition"
+    language: "Python 3.10+"
+    build_unit: "onn_ops_pkg"
+    internal_dependencies:
+      - "sego_gauge_anchor"
+    external_dependencies:
+      - "numpy"
+      - "torch"
+    interfaces_used:
+      - "RawSemanticGraph"
+      - "StabilizedGraph"
+      - "ConstraintConfig"
+      - "stabilized_graph_stream"
+      - "constraint_config_update"
+
+  - module_id: "imago_intent_planner"
+    path: "src/onn/ops"
+    description: "IMAGO operator for intent flow and ReasoningTrace."
+    layer: "layer_cognition"
+    language: "Python 3.10+"
+    build_unit: "onn_ops_pkg"
+    internal_dependencies:
+      - "logos_consensus_solver"
+    external_dependencies:
+      - "numpy"
+    interfaces_used:
+      - "StabilizedGraph"
+      - "MissionGoal"
+      - "ReasoningTrace"
+      - "mission_goal_stream"
+      - "reasoning_trace_stream"
+
+  - module_id: "ortsf_fabric_controller"
+    path: "src/ortsf/fabric"
+    description: "ORTSF delay-robust control fabric."
+    layer: "layer_control"
+    language: "Python 3.10+"
+    build_unit: "ortsf_fabric_pkg"
+    internal_dependencies:
+      - "imago_intent_planner"
+      - "hal_sensor_bridge"
+    external_dependencies:
+      - "numpy"
+    interfaces_used:
+      - "ReasoningTrace"
+      - "SensorObservation"
+      - "ActuatorCommand"
+      - "reasoning_trace_stream"
+      - "sensor_observation_stream"
+      - "actuator_command_stream"
+
+  - module_id: "app_mission_control"
+    path: "src/app/mission_control"
+    description: "Mission goal publisher and graph monitor."
+    layer: "layer_app"
+    language: "Python 3.10+"
+    build_unit: "mission_control_pkg"
+    internal_dependencies:
+      - "logos_consensus_solver"
+    external_dependencies: []
+    interfaces_used:
+      - "MissionGoal"
+      - "StabilizedGraph"
+      - "mission_goal_stream"
+      - "stabilized_graph_stream"
+
+  - module_id: "es_trainer"
+    path: "src/onn/es"
+    description: "Evolutionary Strategy (CMA-ES) trainer and scheduler."
+    layer: "layer_app"
+    language: "Python 3.10+"
+    build_unit: "onn_es_pkg"
+    internal_dependencies:
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+    external_dependencies:
+      - "numpy"
+    interfaces_used:
+      - "ONNSolverConfig"
+      - "EvalMetrics"
+      - "ESReport"
+      - "onn_solver_config_stream"
+      - "eval_metrics_stream"
+      - "es_report_stream"
+
+  - module_id: "eval_gate"
+    path: "src/onn/eval"
+    description: "Metric computation and acceptance gates."
+    layer: "layer_app"
+    language: "Python 3.10+"
+    build_unit: "onn_eval_pkg"
+    internal_dependencies:
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+      - "ortsf_fabric_controller"
+    external_dependencies:
+      - "numpy"
+    interfaces_used:
+      - "EvalMetrics"
+      - "GateReport"
+      - "eval_metrics_stream"
+      - "gate_report_stream"
+
+# -------------------------------------------------------------------
+# FILE-LEVEL INVENTORY (CLASSES / FUNCTIONS)
+# -------------------------------------------------------------------
+
+files:
+  - path: "src/onn/core/tensors.py"
+    module_id: "sego_gauge_anchor"
+    kind: "module"
+    purpose: "Schema dataclasses per spec/11_interfaces.ir.yml."
+    classes:
+      - "SemanticNode"
+      - "SemanticEdge"
+      - "EdgeKey"
+      - "EdgeEmbeddingState"
+      - "RawSemanticGraph"
+      - "StabilizedGraph"
+      - "ReasoningTrace"
+      - "ActuatorCommand"
+      - "ControlMode"
+      - "JointState"
+      - "SensorObservation"
+      - "MissionGoal"
+      - "ConstraintConfig"
+      - "ONNSolverConfig"
+      - "EvalMetrics"
+      - "GateReport"
+      - "ESConfig"
+      - "ESReport"
+    functions:
+      - "SemanticNode.combined_state"
+      - "SemanticNode.copy"
+      - "SemanticEdge.effective_strength"
+    test_targets:
+      - "tests/unit/test_core_tensors.py"
+
+  - path: "src/onn/core/graph_utils.py"
+    module_id: "logos_consensus_solver"
+    kind: "module"
+    purpose: "Graph helpers for adjacency, lookup, and validation."
+    classes: []
+    functions:
+      - "build_adjacency"
+      - "node_lookup"
+      - "edge_lookup"
+      - "validate_graph"
+      - "prune_edges"
+    test_targets:
+      - "tests/unit/test_graph_utils.py"
+
+  - path: "src/onn/core/constraint_config.py"
+    module_id: "logos_consensus_solver"
+    kind: "module"
+    purpose: "ConstraintConfig loading and defaults."
+    classes: []
+    functions:
+      - "load_constraint_config"
+      - "merge_constraint_config"
+    test_targets:
+      - "tests/unit/test_constraint_config.py"
+
+  - path: "src/onn/core/graph.py"
+    module_id: "logos_consensus_solver"
+    kind: "module"
+    purpose: "Graph representation for edge-embedding ONN core."
+    classes:
+      - "EdgeGraph"
+    functions:
+      - "EdgeGraph.from_raw_graph"
+      - "EdgeGraph.edge_index"
+    test_targets:
+      - "tests/unit/test_graph_core.py"
+
+  - path: "src/onn/core/cycles.py"
+    module_id: "logos_consensus_solver"
+    kind: "module"
+    purpose: "Cycle basis construction for constraint matrix C."
+    classes: []
+    functions:
+      - "build_cycle_basis"
+      - "cycle_matrix"
+      - "cycle_targets"
+    test_targets:
+      - "tests/unit/test_cycles.py"
+
+  - path: "src/onn/core/projection.py"
+    module_id: "logos_consensus_solver"
+    kind: "module"
+    purpose: "Projection operators for Cx=tau constraints."
+    classes: []
+    functions:
+      - "project_constraints"
+      - "relaxed_projection"
+    test_targets:
+      - "tests/unit/test_projection.py"
+
+  - path: "src/onn/core/losses.py"
+    module_id: "logos_consensus_solver"
+    kind: "module"
+    purpose: "Loss terms for ONN edge-embedding solver."
+    classes: []
+    functions:
+      - "loss_data"
+      - "loss_context"
+      - "loss_ricci"
+      - "loss_smooth"
+      - "loss_variance"
+      - "total_loss"
+    test_targets:
+      - "tests/unit/test_losses.py"
+
+  - path: "src/onn/core/solver.py"
+    module_id: "logos_consensus_solver"
+    kind: "module"
+    purpose: "Projection–Consensus solver for edge embeddings."
+    classes:
+      - "PCSolverConfig"
+      - "ProjectionConsensusSolver"
+    functions:
+      - "ProjectionConsensusSolver.solve"
+      - "ProjectionConsensusSolver.step"
+    test_targets:
+      - "tests/unit/test_solver_pc.py"
+
+  - path: "src/onn/relation/basis.py"
+    module_id: "onn_relation_encoder"
+    kind: "module"
+    purpose: "Pair feature extraction for relation embeddings."
+    classes: []
+    functions:
+      - "compute_pair_features"
+      - "standardize_features"
+    test_targets:
+      - "tests/unit/test_relation_basis.py"
+
+  - path: "src/onn/relation/param.py"
+    module_id: "onn_relation_encoder"
+    kind: "module"
+    purpose: "x_obs parameterization for edge embeddings."
+    classes:
+      - "RelationParamConfig"
+    functions:
+      - "encode_relation"
+      - "random_projection"
+    test_targets:
+      - "tests/unit/test_relation_param.py"
+
+  - path: "src/onn/es/ask_tell.py"
+    module_id: "es_trainer"
+    kind: "module"
+    purpose: "CMA-ES ask/tell loop implementation."
+    classes:
+      - "CMAESState"
+      - "CMAESTrainer"
+    functions:
+      - "CMAESTrainer.ask"
+      - "CMAESTrainer.tell"
+    test_targets:
+      - "tests/unit/test_es_ask_tell.py"
+
+  - path: "src/onn/es/fitness.py"
+    module_id: "es_trainer"
+    kind: "module"
+    purpose: "Episodic fitness evaluation for ES."
+    classes:
+      - "FitnessConfig"
+    functions:
+      - "evaluate_episode"
+      - "aggregate_metrics"
+    test_targets:
+      - "tests/unit/test_es_fitness.py"
+
+  - path: "src/onn/es/schedule.py"
+    module_id: "es_trainer"
+    kind: "module"
+    purpose: "Hyperparameter schedules (eta, K, lambdas)."
+    classes:
+      - "ScheduleConfig"
+    functions:
+      - "apply_schedule"
+    test_targets:
+      - "tests/unit/test_es_schedule.py"
+
+  - path: "src/onn/eval/metrics.py"
+    module_id: "eval_gate"
+    kind: "module"
+    purpose: "Metric computation for violations, drift, Ricci, latency."
+    classes: []
+    functions:
+      - "compute_violation"
+      - "compute_drift"
+      - "compute_ricci_energy"
+      - "compute_smoothness"
+      - "compute_latency"
+      - "compute_collapse_score"
+    test_targets:
+      - "tests/unit/test_eval_metrics.py"
+
+  - path: "src/onn/eval/gates.py"
+    module_id: "eval_gate"
+    kind: "module"
+    purpose: "Acceptance gates and failure labeling."
+    classes:
+      - "GateConfig"
+      - "GateResult"
+    functions:
+      - "evaluate_gates"
+    test_targets:
+      - "tests/unit/test_eval_gates.py"
+
+  - path: "src/onn/eval/reports.py"
+    module_id: "eval_gate"
+    kind: "module"
+    purpose: "JSONL logging and summary reporting."
+    classes:
+      - "ReportConfig"
+    functions:
+      - "write_report"
+      - "summarize_reports"
+    test_targets:
+      - "tests/unit/test_eval_reports.py"
+
+  - path: "config/constraint_defaults.yaml"
+    module_id: "logos_consensus_solver"
+    kind: "config"
+    purpose: "Default solver weights and hyperparameters (lambda_data, lambda_phys, lambda_logic)."
+
+  - path: "src/onn/ops/sego_anchor.py"
+    module_id: "sego_gauge_anchor"
+    kind: "module"
+    purpose: "SEGO gauge anchoring; builds RawSemanticGraph."
+    classes:
+      - "FeatureEncoder"
+      - "SimpleFeatureEncoder"
+      - "Detection"
+      - "SEGOConfig"
+      - "SEGOGaugeAnchor"
+    functions:
+      - "SEGOGaugeAnchor.process"
+      - "SEGOGaugeAnchor._simple_detection"
+      - "SEGOGaugeAnchor._project_to_nodes"
+      - "SEGOGaugeAnchor._generate_edge_candidates"
+      - "create_default_sego_anchor"
+    test_targets:
+      - "tests/smoke/test_sego_one_frame.py"
+
+  - path: "src/onn/ops/logos_solver.py"
+    module_id: "logos_consensus_solver"
+    kind: "module"
+    purpose: "LOGOS projection-consensus solver with PyTorch autograd losses."
+    classes:
+      - "LOGOSConfig"
+      - "SolverResult"
+      - "LOGOSSolver"
+    functions:
+      - "compute_data_loss"
+      - "compute_phys_loss"
+      - "compute_logic_loss"
+      - "compute_total_loss"
+      - "project_to_manifold"
+      - "create_default_solver"
+      - "create_realtime_solver"
+      - "LOGOSSolver.solve"
+      - "LOGOSSolver._nodes_to_tensor"
+      - "LOGOSSolver._edges_to_tensors"
+      - "LOGOSSolver._tensor_to_nodes"
+      - "LOGOSSolver._prune_edges"
+      - "LOGOSSolver.get_last_result"
+      - "LOGOSSolver.reset"
+    test_targets:
+      - "tests/unit/test_logos_energy.py"
+      - "tests/unit/test_logos_solver.py"
+      - "tests/smoke/test_logos_solver_basic.py"
+
+  - path: "src/onn/modules/curvature.py"
+    module_id: "imago_intent_planner"
+    kind: "module"
+    purpose: "Forman-Ricci curvature and clustering utilities."
+    classes:
+      - "CurvatureCluster"
+    functions:
+      - "forman_ricci_curvature"
+      - "forman_ricci_node_curvature"
+      - "graph_average_curvature"
+      - "identify_functional_clusters"
+      - "curvature_gradient_field"
+    test_targets:
+      - "tests/unit/test_curvature.py"
+
+  - path: "src/onn/ops/imago_planner.py"
+    module_id: "imago_intent_planner"
+    kind: "module"
+    purpose: "IMAGO planner that builds ReasoningTrace from graph and goal."
+    classes:
+      - "IMAGOConfig"
+      - "IMAGOPlanner"
+    functions:
+      - "IMAGOPlanner.plan"
+      - "IMAGOPlanner._select_target_state"
+      - "IMAGOPlanner._build_trace"
+    test_targets:
+      - "tests/smoke/test_imago_trace_basic.py"
+
+  - path: "src/ortsf/fabric/ortsf_fabric.py"
+    module_id: "ortsf_fabric_controller"
+    kind: "module"
+    purpose: "ORTSF delay prediction, trace interpolation, and command output."
+    classes:
+      - "ORTSFConfig"
+      - "ORTSFFabric"
+    functions:
+      - "ORTSFFabric.step"
+      - "ORTSFFabric._predict_delay"
+      - "ORTSFFabric._interpolate_trace"
+      - "ORTSFFabric._compute_command"
+    test_targets:
+      - "tests/smoke/test_ortsf_fabric_basic.py"
+
+  - path: "src/hal/sensor_bridge/sensor_bridge.py"
+    module_id: "hal_sensor_bridge"
+    kind: "module"
+    purpose: "Mock SensorObservation acquisition and time sync."
+    classes:
+      - "SensorBridgeConfig"
+      - "SensorBridge"
+    functions:
+      - "SensorBridge.acquire"
+      - "SensorBridge._mock_observation"
+    test_targets:
+      - "tests/smoke/test_sensor_bridge_basic.py"
+
+  - path: "src/hal/actuator_bridge/actuator_bridge.py"
+    module_id: "hal_actuator_bridge"
+    kind: "module"
+    purpose: "Clamp and forward ActuatorCommand."
+    classes:
+      - "ActuatorBridgeConfig"
+      - "ActuatorBridge"
+    functions:
+      - "ActuatorBridge.send"
+      - "ActuatorBridge._clamp"
+    test_targets:
+      - "tests/smoke/test_actuator_bridge_basic.py"
+
+  - path: "src/app/mission_control/mission_control.py"
+    module_id: "app_mission_control"
+    kind: "module"
+    purpose: "Publish MissionGoal and expose basic graph monitoring."
+    classes:
+      - "MissionControlConfig"
+      - "MissionControl"
+    functions:
+      - "MissionControl.publish_goal"
+      - "MissionControl.latest_graph_summary"
+    test_targets:
+      - "tests/smoke/test_mission_control_basic.py"
+
+  - path: "src/onn/__init__.py"
+    module_id: "sego_gauge_anchor"
+    kind: "package_init"
+    purpose: "Export core/ops/modules symbols."
+
+  - path: "src/onn/ops/__init__.py"
+    module_id: "sego_gauge_anchor"
+    kind: "package_init"
+    purpose: "Export SEGO/LOGOS/IMAGO operators."
+
+  - path: "src/onn/core/__init__.py"
+    module_id: "sego_gauge_anchor"
+    kind: "package_init"
+    purpose: "Export core dataclasses and helpers."
+
+  - path: "src/onn/modules/__init__.py"
+    module_id: "imago_intent_planner"
+    kind: "package_init"
+    purpose: "Export curvature utilities."
+
+  - path: "src/onn/relation/__init__.py"
+    module_id: "onn_relation_encoder"
+    kind: "package_init"
+    purpose: "Export relation encoding utilities."
+
+  - path: "src/onn/es/__init__.py"
+    module_id: "es_trainer"
+    kind: "package_init"
+    purpose: "Export ES trainer utilities."
+
+  - path: "src/onn/eval/__init__.py"
+    module_id: "eval_gate"
+    kind: "package_init"
+    purpose: "Export evaluation metrics and gates."
+
+  - path: "src/hal/__init__.py"
+    module_id: "hal_sensor_bridge"
+    kind: "package_init"
+    purpose: "HAL package root."
+
+  - path: "src/hal/sensor_bridge/__init__.py"
+    module_id: "hal_sensor_bridge"
+    kind: "package_init"
+    purpose: "SensorBridge exports."
+
+  - path: "src/hal/actuator_bridge/__init__.py"
+    module_id: "hal_actuator_bridge"
+    kind: "package_init"
+    purpose: "ActuatorBridge exports."
+
+  - path: "src/ortsf/__init__.py"
+    module_id: "ortsf_fabric_controller"
+    kind: "package_init"
+    purpose: "ORTSF package root."
+
+  - path: "src/ortsf/fabric/__init__.py"
+    module_id: "ortsf_fabric_controller"
+    kind: "package_init"
+    purpose: "ORTSF fabric exports."
+
+  - path: "src/app/__init__.py"
+    module_id: "app_mission_control"
+    kind: "package_init"
+    purpose: "App package root."
+
+  - path: "src/app/mission_control/__init__.py"
+    module_id: "app_mission_control"
+    kind: "package_init"
+    purpose: "MissionControl exports."
+
+# -------------------------------------------------------------------
+# MATH-TO-CODE MAPPING (SPEC REFERENCES)
+# -------------------------------------------------------------------
+
+math_mapping:
+  - name: "State vector composition"
+    reference: "02_onn_math_spec.md Section 1.1"
+    equation: "S_i = [B_i, F_i, I_i]"
+    module_id: "sego_gauge_anchor"
+    file: "src/onn/core/tensors.py"
+    function: "SemanticNode.__post_init__"
+
+  - name: "SEGO encoder and edge proposal"
+    reference: "02_onn_math_spec.md Section 2.1"
+    equation: "S_raw = f_enc(z), E_raw = f_geo(S)"
+    module_id: "sego_gauge_anchor"
+    file: "src/onn/ops/sego_anchor.py"
+    function: "SEGOGaugeAnchor.process"
+
+  - name: "LOGOS update rule"
+    reference: "02_onn_math_spec.md Section 2.2 and 5.1"
+    equation: "S_next = P_C(S - eta * grad L)"
+    module_id: "logos_consensus_solver"
+    file: "src/onn/ops/logos_solver.py"
+    function: "LOGOSSolver.solve"
+
+  - name: "Loss components"
+    reference: "02_onn_math_spec.md Section 4.1"
+    equation: "L_total = lambda_data*L_data + lambda_phys*L_phys + lambda_logic*L_logic"
+    module_id: "logos_consensus_solver"
+    file: "src/onn/ops/logos_solver.py"
+    function: "compute_total_loss"
+
+  - name: "Forman-Ricci curvature"
+    reference: "02_onn_math_spec.md Section 2.3"
+    equation: "F_e = 4 - d_i - d_j + 3*triangles"
+    module_id: "imago_intent_planner"
+    file: "src/onn/modules/curvature.py"
+    function: "forman_ricci_curvature"
+
+  - name: "IMAGO reasoning trace"
+    reference: "02_onn_math_spec.md Section 2.3"
+    equation: "R_trace = plan(G_valid, goal)"
+    module_id: "imago_intent_planner"
+    file: "src/onn/ops/imago_planner.py"
+    function: "IMAGOPlanner.plan"
+
+# -------------------------------------------------------------------
+# TASKS (DETAILED)
+# -------------------------------------------------------------------
+
+tasks:
+  - task_id: "IMPL_001"
+    title: "Implement core schema dataclasses"
+    description: "Implement dataclasses in src/onn/core/tensors.py per spec/11_interfaces.ir.yml."
+    target_module:
+      - "sego_gauge_anchor"
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+      - "ortsf_fabric_controller"
+      - "hal_sensor_bridge"
+      - "hal_actuator_bridge"
+      - "app_mission_control"
+    target_files:
+      - "src/onn/core/tensors.py"
+    depends_on: []
+    priority: "HIGH"
+    acceptance_criteria:
+      - "All schema classes import without errors."
+      - "Field shapes match spec/11_interfaces.ir.yml."
+      - "Unit test tests/unit/test_core_tensors.py passes."
+    tests:
+      - "tests/unit/test_core_tensors.py"
+
+  - task_id: "IMPL_002"
+    title: "Add graph utilities and validation"
+    description: "Implement graph helpers in src/onn/core/graph_utils.py."
+    target_module:
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+    target_files:
+      - "src/onn/core/graph_utils.py"
+    depends_on:
+      - "IMPL_001"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Graph utilities cover adjacency and node lookup."
+      - "Unit test tests/unit/test_graph_utils.py passes."
+    tests:
+      - "tests/unit/test_graph_utils.py"
+
+  - task_id: "IMPL_003"
+    title: "Define ConstraintConfig defaults"
+    description: "Implement config parsing and defaults in src/onn/core/constraint_config.py and config/constraint_defaults.yaml."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/core/constraint_config.py"
+      - "config/constraint_defaults.yaml"
+    depends_on:
+      - "IMPL_001"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ConstraintConfig loads defaults and overrides."
+      - "Unit test tests/unit/test_constraint_config.py passes."
+    tests:
+      - "tests/unit/test_constraint_config.py"
+
+  - task_id: "IMPL_004"
+    title: "Implement SEGO gauge anchoring baseline"
+    description: "Implement f_enc and f_geo placeholders per spec/02_onn_math_spec.md Section 2.1."
+    target_module:
+      - "sego_gauge_anchor"
+    target_files:
+      - "src/onn/ops/sego_anchor.py"
+    depends_on:
+      - "IMPL_001"
+      - "IMPL_002"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "SEGO returns RawSemanticGraph with nodes and edge_candidates."
+      - "Smoke test tests/smoke/test_sego_one_frame.py passes."
+    tests:
+      - "tests/smoke/test_sego_one_frame.py"
+
+  - task_id: "IMPL_005"
+    title: "Implement LOGOS energy terms (PyTorch)"
+    description: "Implement L_data, L_phys, L_logic per spec/02_onn_math_spec.md Section 4 using torch and autograd."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/ops/logos_solver.py"
+    depends_on:
+      - "IMPL_001"
+      - "IMPL_002"
+      - "IMPL_003"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Energy terms compute finite values for small graphs."
+      - "Energy computation runs in PyTorch and supports autograd."
+      - "Unit test tests/unit/test_logos_energy.py passes."
+    tests:
+      - "tests/unit/test_logos_energy.py"
+
+  - task_id: "IMPL_006"
+    title: "Implement LOGOS projection-consensus solver (PyTorch)"
+    description: "Implement solver loop with torch.autograd gradients and projection."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/ops/logos_solver.py"
+    depends_on:
+      - "IMPL_005"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Solver respects max_iterations and tolerance."
+      - "Gradients are computed via torch.autograd."
+      - "Smoke test tests/smoke/test_logos_solver_basic.py passes."
+    tests:
+      - "tests/unit/test_logos_solver.py"
+      - "tests/smoke/test_logos_solver_basic.py"
+
+  - task_id: "IMPL_007"
+    title: "Implement Forman-Ricci curvature module"
+    description: "Align curvature formula with spec/02_onn_math_spec.md Section 2.3."
+    target_module:
+      - "imago_intent_planner"
+    target_files:
+      - "src/onn/modules/curvature.py"
+    depends_on:
+      - "IMPL_001"
+      - "IMPL_002"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Curvature computed for edges and nodes."
+      - "Unit test tests/unit/test_curvature.py passes."
+    tests:
+      - "tests/unit/test_curvature.py"
+
+  - task_id: "IMPL_008"
+    title: "Implement IMAGO planner"
+    description: "Generate ReasoningTrace using curvature and MissionGoal."
+    target_module:
+      - "imago_intent_planner"
+    target_files:
+      - "src/onn/ops/imago_planner.py"
+    depends_on:
+      - "IMPL_006"
+      - "IMPL_007"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ReasoningTrace.valid_until_ns and curvature are populated."
+      - "Smoke test tests/smoke/test_imago_trace_basic.py passes."
+    tests:
+      - "tests/smoke/test_imago_trace_basic.py"
+
+  - task_id: "IMPL_009"
+    title: "Implement ORTSF fabric baseline"
+    description: "Implement delay prediction, trace interpolation, and ActuatorCommand output."
+    target_module:
+      - "ortsf_fabric_controller"
+    target_files:
+      - "src/ortsf/fabric/ortsf_fabric.py"
+    depends_on:
+      - "IMPL_008"
+      - "IMPL_001"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ActuatorCommand output is finite and mode is valid."
+      - "Smoke test tests/smoke/test_ortsf_fabric_basic.py passes."
+    tests:
+      - "tests/smoke/test_ortsf_fabric_basic.py"
+
+  - task_id: "IMPL_010"
+    title: "Implement SensorBridge mock"
+    description: "Provide deterministic SensorObservation generation and time sync."
+    target_module:
+      - "hal_sensor_bridge"
+    target_files:
+      - "src/hal/sensor_bridge/sensor_bridge.py"
+    depends_on:
+      - "IMPL_001"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "SensorObservation timestamps are monotonic."
+      - "Smoke test tests/smoke/test_sensor_bridge_basic.py passes."
+    tests:
+      - "tests/smoke/test_sensor_bridge_basic.py"
+
+  - task_id: "IMPL_011"
+    title: "Implement ActuatorBridge mock"
+    description: "Clamp and validate ActuatorCommand output."
+    target_module:
+      - "hal_actuator_bridge"
+    target_files:
+      - "src/hal/actuator_bridge/actuator_bridge.py"
+    depends_on:
+      - "IMPL_001"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Outputs are within configured limits."
+      - "Smoke test tests/smoke/test_actuator_bridge_basic.py passes."
+    tests:
+      - "tests/smoke/test_actuator_bridge_basic.py"
+
+  - task_id: "IMPL_012"
+    title: "Implement MissionControl"
+    description: "Publish MissionGoal and provide graph inspection."
+    target_module:
+      - "app_mission_control"
+    target_files:
+      - "src/app/mission_control/mission_control.py"
+    depends_on:
+      - "IMPL_001"
+      - "IMPL_006"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "MissionGoal can be created and emitted."
+      - "Smoke test tests/smoke/test_mission_control_basic.py passes."
+    tests:
+      - "tests/smoke/test_mission_control_basic.py"
+
+  - task_id: "IMPL_013"
+    title: "Create end-to-end mock pipeline test"
+    description: "Implement CSA pipeline test with HAL -> SEGO -> LOGOS -> IMAGO -> ORTSF -> HAL."
+    target_module:
+      - "hal_sensor_bridge"
+      - "sego_gauge_anchor"
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+      - "ortsf_fabric_controller"
+      - "hal_actuator_bridge"
+      - "app_mission_control"
+    target_files:
+      - "tests/smoke/test_csa_e2e_pipeline.py"
+    depends_on:
+      - "IMPL_004"
+      - "IMPL_006"
+      - "IMPL_008"
+      - "IMPL_009"
+      - "IMPL_010"
+      - "IMPL_011"
+      - "IMPL_012"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "E2E test produces at least one ActuatorCommand."
+      - "Test exits with code 0."
+    tests:
+      - "tests/smoke/test_csa_e2e_pipeline.py"
+
+  - task_id: "IMPL_014"
+    title: "Add CSA smoke test scaffolding"
+    description: "Create tests/smoke files for each CSA module per spec/21_test_plan.ir.yml."
+    target_module:
+      - "hal_sensor_bridge"
+      - "hal_actuator_bridge"
+      - "sego_gauge_anchor"
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+      - "ortsf_fabric_controller"
+      - "app_mission_control"
+    target_files:
+      - "tests/smoke/test_sensor_bridge_basic.py"
+      - "tests/smoke/test_actuator_bridge_basic.py"
+      - "tests/smoke/test_sego_one_frame.py"
+      - "tests/smoke/test_logos_solver_basic.py"
+      - "tests/smoke/test_imago_trace_basic.py"
+      - "tests/smoke/test_ortsf_fabric_basic.py"
+      - "tests/smoke/test_mission_control_basic.py"
+    depends_on:
+      - "IMPL_010"
+      - "IMPL_011"
+      - "IMPL_004"
+      - "IMPL_006"
+      - "IMPL_008"
+      - "IMPL_009"
+      - "IMPL_012"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Smoke test files exist and execute."
+      - "Tests listed in spec/21_test_plan.ir.yml are present."
+    tests:
+      - "tests/smoke/test_sensor_bridge_basic.py"
+      - "tests/smoke/test_actuator_bridge_basic.py"
+      - "tests/smoke/test_sego_one_frame.py"
+      - "tests/smoke/test_logos_solver_basic.py"
+      - "tests/smoke/test_imago_trace_basic.py"
+      - "tests/smoke/test_ortsf_fabric_basic.py"
+      - "tests/smoke/test_mission_control_basic.py"
+
+  - task_id: "IMPL_015"
+    title: "Implement ONN core graph and cycle basis"
+    description: "Add graph representation and cycle basis construction for edge embeddings."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/core/graph.py"
+      - "src/onn/core/cycles.py"
+    depends_on:
+      - "IMPL_001"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Cycle basis matrix C is computed for small graphs."
+      - "Unit tests for graph core and cycles pass."
+    tests:
+      - "tests/unit/test_graph_core.py"
+      - "tests/unit/test_cycles.py"
+
+  - task_id: "IMPL_016"
+    title: "Implement projection operators"
+    description: "Implement hard and relaxed projection P_C for Cx=tau constraints."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/core/projection.py"
+    depends_on:
+      - "IMPL_015"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "project_constraints enforces Cx=tau for small cases."
+      - "relaxed_projection supports alpha in (0,1]."
+    tests:
+      - "tests/unit/test_projection.py"
+
+  - task_id: "IMPL_017"
+    title: "Implement ONN edge-embedding losses"
+    description: "Add data/context/ricci/smooth/variance losses for edge embeddings."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/core/losses.py"
+    depends_on:
+      - "IMPL_015"
+      - "IMPL_007"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Loss terms return finite scalars."
+      - "Unit tests validate loss behavior."
+    tests:
+      - "tests/unit/test_losses.py"
+
+  - task_id: "IMPL_018"
+    title: "Implement Projection–Consensus solver (edge embeddings)"
+    description: "Add K-step solver loop with gradient descent and relaxed projection."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/core/solver.py"
+    depends_on:
+      - "IMPL_016"
+      - "IMPL_017"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Solver reduces total loss on synthetic graphs."
+      - "Projection step keeps violations bounded."
+    tests:
+      - "tests/unit/test_solver_pc.py"
+
+  - task_id: "IMPL_019"
+    title: "Implement relation embedding parameterization"
+    description: "Add pair feature extraction and x_obs parameterization for edges."
+    target_module:
+      - "onn_relation_encoder"
+    target_files:
+      - "src/onn/relation/basis.py"
+      - "src/onn/relation/param.py"
+    depends_on:
+      - "IMPL_004"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Pair features computed for edge candidates."
+      - "x_obs embeddings generated with random projection + linear term."
+    tests:
+      - "tests/unit/test_relation_basis.py"
+      - "tests/unit/test_relation_param.py"
+
+  - task_id: "IMPL_020"
+    title: "Implement ES ask/tell (CMA-ES)"
+    description: "Add CMA-ES trainer for ONN solver hyperparameters."
+    target_module:
+      - "es_trainer"
+    target_files:
+      - "src/onn/es/ask_tell.py"
+    depends_on:
+      - "IMPL_018"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ask returns candidate parameter sets."
+      - "tell updates mean/covariance and improves fitness trends."
+    tests:
+      - "tests/unit/test_es_ask_tell.py"
+
+  - task_id: "IMPL_021"
+    title: "Implement ES fitness and schedules"
+    description: "Add episodic fitness evaluation and parameter schedules."
+    target_module:
+      - "es_trainer"
+    target_files:
+      - "src/onn/es/fitness.py"
+      - "src/onn/es/schedule.py"
+    depends_on:
+      - "IMPL_020"
+      - "IMPL_022"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Fitness aggregates violation/drift/ricci/smooth/latency metrics."
+      - "Schedules apply to eta/K/lambda parameters."
+    tests:
+      - "tests/unit/test_es_fitness.py"
+      - "tests/unit/test_es_schedule.py"
+
+  - task_id: "IMPL_022"
+    title: "Implement evaluation metrics and gates"
+    description: "Add metric computation, gating logic, and reporting utilities."
+    target_module:
+      - "eval_gate"
+    target_files:
+      - "src/onn/eval/metrics.py"
+      - "src/onn/eval/gates.py"
+      - "src/onn/eval/reports.py"
+    depends_on:
+      - "IMPL_018"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Metrics match definitions for violation/drift/ricci/smooth/latency."
+      - "Gate thresholds yield pass/fail results."
+    tests:
+      - "tests/unit/test_eval_metrics.py"
+      - "tests/unit/test_eval_gates.py"
+      - "tests/unit/test_eval_reports.py"
+
+  - task_id: "IMPL_023"
+    title: "Add unit tests for ONN core"
+    description: "Create unit tests for graph/cycles/projection/losses/solver modules."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "tests/unit/test_graph_core.py"
+      - "tests/unit/test_cycles.py"
+      - "tests/unit/test_projection.py"
+      - "tests/unit/test_losses.py"
+      - "tests/unit/test_solver_pc.py"
+    depends_on:
+      - "IMPL_015"
+      - "IMPL_016"
+      - "IMPL_017"
+      - "IMPL_018"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "All new unit tests pass."
+    tests:
+      - "tests/unit/test_graph_core.py"
+      - "tests/unit/test_cycles.py"
+      - "tests/unit/test_projection.py"
+      - "tests/unit/test_losses.py"
+      - "tests/unit/test_solver_pc.py"
+
+  - task_id: "IMPL_024"
+    title: "Add ES integration tests"
+    description: "Create integration tests for ES loop on synthetic scenarios."
+    target_module:
+      - "es_trainer"
+      - "eval_gate"
+    target_files:
+      - "tests/integration/test_es_loop_synthetic.py"
+    depends_on:
+      - "IMPL_020"
+      - "IMPL_021"
+      - "IMPL_022"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ES loop runs for multiple generations."
+      - "Metrics and gate reports are recorded."
+    tests:
+      - "tests/integration/test_es_loop_synthetic.py"
+
+  - task_id: "IMPL_025"
+    title: "Add ES/eval smoke tests"
+    description: "Create smoke tests for eval gates and ES pipeline basics."
+    target_module:
+      - "es_trainer"
+      - "eval_gate"
+    target_files:
+      - "tests/smoke/test_eval_gates_basic.py"
+      - "tests/smoke/test_es_pipeline_basic.py"
+    depends_on:
+      - "IMPL_022"
+      - "IMPL_024"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Smoke tests execute in < 10s."
+    tests:
+      - "tests/smoke/test_eval_gates_basic.py"
+      - "tests/smoke/test_es_pipeline_basic.py"
+
+  - task_id: "CPL_003"
+    title: "Gate IMAGO on LOGOS convergence"
+    description: "Hold last valid graph or halt when LOGOS fails to converge; never emit invalid graphs to IMAGO."
+    target_module:
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+    target_files:
+      - "src/onn/ops/logos_solver.py"
+      - "src/onn/ops/imago_planner.py"
+    depends_on:
+      - "IMPL_006"
+      - "IMPL_008"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "LOGOS exposes convergence status and retains last valid graph."
+      - "IMAGO refuses graphs marked invalid or stale."
+    tests:
+      - "tests/unit/test_logos_solver.py"
+      - "tests/smoke/test_logos_solver_basic.py"
+
+  - task_id: "CPL_004"
+    title: "Align LOGOS solver API with spec interfaces"
+    description: "Provide a ConstraintConfig adapter and/or wrapper classes to match spec/20_impl_plan.ir.yml and spec/11_interfaces.ir.yml."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/ops/logos_solver.py"
+      - "src/onn/core/constraint_config.py"
+    depends_on:
+      - "IMPL_003"
+      - "IMPL_006"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "LOGOS can be configured via ConstraintConfig or an adapter."
+      - "Public solver API matches spec naming or provides compatible wrappers."
+    tests:
+      - "tests/unit/test_constraint_config.py"
+      - "tests/unit/test_logos_solver.py"
+
+  - task_id: "CPL_005"
+    title: "Move SEGO/IMAGO intent constants into config"
+    description: "Replace hard-coded normalization and blend factors with configuration or observation-derived values."
+    target_module:
+      - "sego_gauge_anchor"
+      - "imago_intent_planner"
+    target_files:
+      - "src/onn/ops/sego_anchor.py"
+      - "src/onn/ops/imago_planner.py"
+    depends_on:
+      - "IMPL_004"
+      - "IMPL_008"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Intent encoding constants are configurable or derived from inputs."
+      - "No hard-coded normalization factors in SEGO/IMAGO intent paths."
+    tests:
+      - "tests/smoke/test_sego_one_frame.py"
+      - "tests/smoke/test_imago_trace_basic.py"
+
+  - task_id: "CPL_006"
+    title: "Prune isolated nodes per edge-defined existence"
+    description: "Remove nodes with zero edges after validation to enforce 'existence is defined by edges'."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/core/graph_utils.py"
+      - "src/onn/ops/logos_solver.py"
+    depends_on:
+      - "IMPL_002"
+      - "IMPL_006"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Graphs remove or flag nodes with zero edges after pruning."
+      - "Downstream modules handle pruned nodes cleanly."
+    tests:
+      - "tests/unit/test_graph_utils.py"
+      - "tests/smoke/test_logos_solver_basic.py"
+
+  - task_id: "CPL_007"
+    title: "Align ConstraintConfig defaults with spec"
+    description: "Ensure ConstraintConfig defaults match spec/01_constraints.md or are sourced from config."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/core/tensors.py"
+      - "config/constraint_defaults.yaml"
+    depends_on:
+      - "IMPL_001"
+      - "IMPL_003"
+    priority: "LOW"
+    acceptance_criteria:
+      - "ConstraintConfig defaults reflect spec (max_iterations=10) or are removed in favor of config file."
+    tests:
+      - "tests/unit/test_constraint_config.py"
+
+  - task_id: "CPL_010"
+    title: "Implement EdgeEmbeddingState and EdgeKey schemas"
+    description: "Add EdgeKey and EdgeEmbeddingState dataclasses to core tensors per spec/11_interfaces.ir.yml."
+    target_module:
+      - "onn_relation_encoder"
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/core/tensors.py"
+      - "src/onn/core/__init__.py"
+    depends_on:
+      - "IMPL_001"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "EdgeKey and EdgeEmbeddingState are defined and importable from onn.core."
+      - "Fields match spec/11_interfaces.ir.yml."
+    tests:
+      - "tests/unit/test_core_tensors.py"
+
+  - task_id: "CPL_011"
+    title: "Align ONNSolverConfig with PCSolverConfig"
+    description: "Provide ONNSolverConfig dataclass and adapter so callers can configure the PC solver using spec/11_interfaces.ir.yml names."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/core/tensors.py"
+      - "src/onn/core/solver.py"
+      - "src/onn/core/__init__.py"
+    depends_on:
+      - "IMPL_018"
+      - "CPL_010"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ONNSolverConfig is defined and importable from onn.core."
+      - "ProjectionConsensusSolver accepts ONNSolverConfig or an adapter with identical field names."
+    tests:
+      - "tests/unit/test_solver_pc.py"
+
+  - task_id: "CPL_012"
+    title: "Unify EvalMetrics and GateReport schemas"
+    description: "Define EvalMetrics/GateReport in core tensors and update eval/es modules to use the shared schema."
+    target_module:
+      - "eval_gate"
+      - "es_trainer"
+    target_files:
+      - "src/onn/core/tensors.py"
+      - "src/onn/eval/metrics.py"
+      - "src/onn/eval/gates.py"
+      - "src/onn/eval/reports.py"
+      - "src/onn/es/fitness.py"
+      - "src/onn/es/__init__.py"
+      - "src/onn/eval/__init__.py"
+    depends_on:
+      - "IMPL_021"
+      - "IMPL_022"
+      - "CPL_010"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "EvalMetrics and GateReport are defined in onn.core.tensors and used across eval/es."
+      - "GateReport.metrics is an EvalMetrics instance, not a dict."
+      - "Reports serialize shared schema consistently."
+    tests:
+      - "tests/unit/test_eval_metrics.py"
+      - "tests/unit/test_eval_gates.py"
+      - "tests/unit/test_eval_reports.py"
+
+  - task_id: "CPL_013"
+    title: "Resolve ghost modules vs architecture"
+    description: "Decide whether to formalize or remove unplanned modules and tests not listed in spec/10_architecture.ir.yml."
+    target_module:
+      - "sego_gauge_anchor"
+      - "onn_relation_encoder"
+      - "es_trainer"
+    target_files:
+      - "spec/10_architecture.ir.yml"
+      - "spec/20_impl_plan.ir.yml"
+      - "src/onn/ops/edge_stabilizer.py"
+      - "src/onn/ops/csa_pipeline.py"
+      - "src/onn/ops/sego_enhanced.py"
+      - "src/onn/relation/contrastive_relation.py"
+      - "src/onn/relation/se3_encoder.py"
+      - "src/onn/relation/predictive_relation.py"
+      - "src/onn/relation/four_axis_relation.py"
+      - "src/onn/relation/topological_regularizer.py"
+      - "src/onn/tlm/__init__.py"
+      - "src/onn/tlm/model.py"
+      - "src/onn/simulation/__init__.py"
+      - "src/onn/simulation/pybullet_env.py"
+      - "tests/integration/test_csa_es_integration.py"
+      - "tests/integration/test_onn_es_gate_loop.py"
+      - "tests/integration/test_enhanced_sego.py"
+    depends_on: []
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Each ghost module/test is either added to spec/10_architecture.ir.yml and spec/20_impl_plan.ir.yml or removed."
+      - "Ghost code list in spec/30_code_status.ir.yml is updated accordingly."
+    tests:
+      - "pytest tests/integration -q"
+
+  - task_id: "CPL_014"
+    title: "Align SEGO bound_tensor with LOGOS L_phys geometry"
+    description: "Populate bound_tensor with position/radius (or update L_phys to use available bound_tensor fields) so physics loss is meaningful."
+    target_module:
+      - "sego_gauge_anchor"
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/ops/sego_anchor.py"
+      - "src/onn/ops/logos_solver.py"
+      - "tests/unit/test_logos_energy.py"
+      - "tests/smoke/test_sego_one_frame.py"
+    depends_on:
+      - "IMPL_004"
+      - "IMPL_005"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "SEGO bound_tensor encodes position/radius compatible with L_phys."
+      - "compute_phys_loss operates on meaningful geometry derived from SEGO."
+    tests:
+      - "tests/unit/test_logos_energy.py"
+      - "tests/smoke/test_sego_one_frame.py"
+
+  - task_id: "CPL_015"
+    title: "Resolve simulation package location vs spec"
+    description: "Align simulation package location with spec (src/sim/) or update spec to match src/onn/simulation/."
+    target_module: []
+    target_files:
+      - "spec/00_high_level_plan.md"
+      - "spec/10_architecture.ir.yml"
+      - "spec/20_impl_plan.ir.yml"
+      - "src/onn/simulation/__init__.py"
+      - "src/onn/simulation/pybullet_env.py"
+      - "src/sim/"
+    depends_on: []
+    priority: "LOW"
+    acceptance_criteria:
+      - "Simulation code location matches spec (either move code or update spec)."
+    tests: []
+
+  - task_id: "CPL_016"
+    title: "Align LOGOS data loss with spec"
+    description: "Update L_data to operate on the bound tensor B_i as defined in spec/02_onn_math_spec.md Section 4.1."
+    target_module:
+      - "logos_consensus_solver"
+    target_files:
+      - "src/onn/ops/logos_solver.py"
+      - "tests/unit/test_logos_energy.py"
+    depends_on:
+      - "IMPL_005"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "L_data uses bound_tensor components only (B_i vs B_i,raw)."
+      - "Unit tests cover B-only data loss behavior."
+    tests:
+      - "tests/unit/test_logos_energy.py"
+
+  - task_id: "TEST_003"
+    title: "Fix integration test imports for src layout"
+    description: "Make `onn` importable for integration tests (package config or test PYTHONPATH)."
+    target_module:
+      - "es_trainer"
+      - "eval_gate"
+      - "sego_gauge_anchor"
+    target_files:
+      - "tests/integration/test_csa_es_integration.py"
+      - "tests/integration/test_onn_es_gate_loop.py"
+      - "tests/integration/test_enhanced_sego.py"
+      - "src/onn/__init__.py"
+      - "tests/__init__.py"
+    depends_on: []
+    priority: "HIGH"
+    acceptance_criteria:
+      - "pytest tests/integration -q collects tests without ModuleNotFoundError."
+      - "Import `onn.core` works from repo root."
+    tests:
+      - "pytest tests/integration -q"
+
+  - task_id: "TEST_004"
+    title: "Add unit tests for relation encoder"
+    description: "Create unit tests for relation basis and parameterization modules."
+    target_module:
+      - "onn_relation_encoder"
+    target_files:
+      - "tests/unit/test_relation_basis.py"
+      - "tests/unit/test_relation_param.py"
+    depends_on:
+      - "IMPL_019"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "tests/unit/test_relation_basis.py and tests/unit/test_relation_param.py exist and pass."
+    tests:
+      - "tests/unit/test_relation_basis.py"
+      - "tests/unit/test_relation_param.py"
+
+  - task_id: "TEST_005"
+    title: "Add unit tests for ES trainer"
+    description: "Create unit tests for CMA-ES ask/tell, fitness evaluation, and schedules."
+    target_module:
+      - "es_trainer"
+    target_files:
+      - "tests/unit/test_es_ask_tell.py"
+      - "tests/unit/test_es_fitness.py"
+      - "tests/unit/test_es_schedule.py"
+    depends_on:
+      - "IMPL_020"
+      - "IMPL_021"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "ES unit tests exist and pass."
+    tests:
+      - "tests/unit/test_es_ask_tell.py"
+      - "tests/unit/test_es_fitness.py"
+      - "tests/unit/test_es_schedule.py"
+
+  - task_id: "TEST_006"
+    title: "Add unit tests for eval metrics/gates/reports"
+    description: "Create unit tests for eval metrics, gate evaluation, and report serialization."
+    target_module:
+      - "eval_gate"
+    target_files:
+      - "tests/unit/test_eval_metrics.py"
+      - "tests/unit/test_eval_gates.py"
+      - "tests/unit/test_eval_reports.py"
+    depends_on:
+      - "IMPL_022"
+      - "CPL_012"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Eval unit tests exist and pass."
+    tests:
+      - "tests/unit/test_eval_metrics.py"
+      - "tests/unit/test_eval_gates.py"
+      - "tests/unit/test_eval_reports.py"
+
+# -------------------------------------------------------------------
+# TEST PLAN LINKAGE
+# -------------------------------------------------------------------
+
+tests_mapping:
+  - module_id: "hal_sensor_bridge"
+    smoke_tests:
+      - "tests/smoke/test_sensor_bridge_basic.py"
+  - module_id: "hal_actuator_bridge"
+    smoke_tests:
+      - "tests/smoke/test_actuator_bridge_basic.py"
+  - module_id: "sego_gauge_anchor"
+    smoke_tests:
+      - "tests/smoke/test_sego_one_frame.py"
+  - module_id: "logos_consensus_solver"
+    smoke_tests:
+      - "tests/smoke/test_logos_solver_basic.py"
+  - module_id: "imago_intent_planner"
+    smoke_tests:
+      - "tests/smoke/test_imago_trace_basic.py"
+  - module_id: "ortsf_fabric_controller"
+    smoke_tests:
+      - "tests/smoke/test_ortsf_fabric_basic.py"
+  - module_id: "app_mission_control"
+    smoke_tests:
+      - "tests/smoke/test_mission_control_basic.py"
+  - module_id: "eval_gate"
+    smoke_tests:
+      - "tests/smoke/test_eval_gates_basic.py"
+  - module_id: "es_trainer"
+    smoke_tests:
+      - "tests/smoke/test_es_pipeline_basic.py"
+  - workflow_id: "WF_SMK_001"
+    smoke_tests:
+      - "tests/smoke/test_csa_e2e_pipeline.py"
+
+migration_notes:
+  pending_changes:
+    - id: "MIG-001"
+      description: "Align existing src/onn/core/tensors.py naming with planned core schema structure."
+      status: "planned"
+  last_reviewed: "2026-01-02"
+
+# -------------------------------------------------------------------
+# MASTER IMPLEMENTATION PLAN (AUDITED, EXHAUSTIVE)
+# -------------------------------------------------------------------
+
+master_plan:
+  module_inventory:
+    - id: hal_sensor_bridge
+      layer: layer_hal
+      status: COMPLETE
+      path: "src/hal/sensor_bridge/sensor_bridge.py"
+      dependencies: []
+      tests:
+        - "tests/smoke/test_sensor_bridge_basic.py"
+    - id: hal_actuator_bridge
+      layer: layer_hal
+      status: COMPLETE
+      path: "src/hal/actuator_bridge/actuator_bridge.py"
+      dependencies: []
+      tests:
+        - "tests/smoke/test_actuator_bridge_basic.py"
+    - id: sego_gauge_anchor
+      layer: layer_perception
+      status: PARTIAL
+      path: "src/onn/ops/sego_anchor.py"
+      dependencies: [hal_sensor_bridge]
+      tests:
+        - "tests/smoke/test_sego_one_frame.py"
+    - id: onn_relation_encoder
+      layer: layer_perception
+      status: PARTIAL
+      path: "src/onn/relation/basis.py"
+      dependencies: [sego_gauge_anchor]
+      tests:
+        - "tests/unit/test_relation_basis.py"
+        - "tests/unit/test_relation_param.py"
+    - id: logos_consensus_solver
+      layer: layer_cognition
+      status: PARTIAL
+      path: "src/onn/ops/logos_solver.py"
+      dependencies: [sego_gauge_anchor]
+      tests:
+        - "tests/unit/test_logos_solver.py"
+        - "tests/smoke/test_logos_solver_basic.py"
+    - id: imago_intent_planner
+      layer: layer_cognition
+      status: COMPLETE
+      path: "src/onn/ops/imago_planner.py"
+      dependencies: [logos_consensus_solver]
+      tests:
+        - "tests/smoke/test_imago_trace_basic.py"
+    - id: ortsf_fabric_controller
+      layer: layer_control
+      status: COMPLETE
+      path: "src/ortsf/fabric/ortsf_fabric.py"
+      dependencies: [imago_intent_planner, hal_sensor_bridge]
+      tests:
+        - "tests/smoke/test_ortsf_fabric_basic.py"
+    - id: app_mission_control
+      layer: layer_app
+      status: COMPLETE
+      path: "src/app/mission_control/mission_control.py"
+      dependencies: [logos_consensus_solver]
+      tests:
+        - "tests/smoke/test_mission_control_basic.py"
+    - id: es_trainer
+      layer: layer_app
+      status: PARTIAL
+      path: "src/onn/es/ask_tell.py"
+      dependencies: [logos_consensus_solver, imago_intent_planner]
+      tests:
+        - "tests/unit/test_es_ask_tell.py"
+        - "tests/unit/test_es_fitness.py"
+        - "tests/unit/test_es_schedule.py"
+        - "tests/smoke/test_es_pipeline_basic.py"
+    - id: eval_gate
+      layer: layer_app
+      status: PARTIAL
+      path: "src/onn/eval/metrics.py"
+      dependencies: [logos_consensus_solver, imago_intent_planner, ortsf_fabric_controller]
+      tests:
+        - "tests/unit/test_eval_metrics.py"
+        - "tests/unit/test_eval_gates.py"
+        - "tests/unit/test_eval_reports.py"
+        - "tests/smoke/test_eval_gates_basic.py"
+
+  schema_inventory:
+    - id: SemanticNode
+      fields:
+        - name: node_id
+          type: uint64
+          shape: scalar
+          description: "Unique persistent identifier for this anchor."
+        - name: bound_tensor
+          type: float32_array
+          shape: "(16,)"
+          description: "B_i: Encodes physical occupancy and collision boundaries."
+        - name: form_tensor
+          type: float32_array
+          shape: "(32,)"
+          description: "F_i: Encodes visual identity and invariant appearance."
+        - name: intent_tensor
+          type: float32_array
+          shape: "(16,)"
+          description: "I_i: Encodes functional affordances and task relevance."
+      embedded_in:
+        - RawSemanticGraph.nodes
+        - StabilizedGraph.nodes
+        - ReasoningTrace.target_state
+    - id: SemanticEdge
+      fields:
+        - name: source_id
+          type: uint64
+          shape: scalar
+          description: "ID of the source node S_i."
+        - name: target_id
+          type: uint64
+          shape: scalar
+          description: "ID of the target node S_j."
+        - name: relation_embedding
+          type: float32_array
+          shape: "(dynamic,)"
+          description: "r_ij: Continuous vector representing the relation."
+        - name: weight
+          type: float32
+          shape: scalar
+          description: "w_ij: Connection stiffness (0.0 to inf)."
+        - name: probability
+          type: float32
+          shape: scalar
+          description: "p_ij: Existence confidence [0, 1]."
+      embedded_in:
+        - RawSemanticGraph.edge_candidates
+        - StabilizedGraph.edges
+    - id: SensorObservation
+      fields:
+        - name: timestamp_ns
+          type: uint64
+          shape: scalar
+          description: "Acquisition time in nanoseconds."
+        - name: frame_id
+          type: string
+          shape: scalar
+          description: "Reference coordinate frame (e.g., 'robot_base')."
+        - name: rgb_images
+          type: list<image_buffer>
+          shape: list
+          description: "List of raw camera images."
+        - name: depth_maps
+          type: list<image_buffer>
+          shape: list
+          description: "Aligned depth maps."
+        - name: joint_state
+          type: JointState
+          shape: struct
+          description: "Current robot configuration (q, q_dot)."
+      producers: [hal_sensor_bridge]
+      consumers: [sego_gauge_anchor, ortsf_fabric_controller]
+    - id: JointState
+      fields:
+        - name: position
+          type: float32_array
+          shape: "(N,)"
+          description: "Joint angles (radians) or positions (meters)."
+        - name: velocity
+          type: float32_array
+          shape: "(N,)"
+          description: "Joint velocities."
+        - name: effort
+          type: float32_array
+          shape: "(N,)"
+          description: "Joint torques/forces."
+      embedded_in:
+        - SensorObservation.joint_state
+    - id: RawSemanticGraph
+      fields:
+        - name: timestamp_ns
+          type: uint64
+          shape: scalar
+          description: "Acquisition time in nanoseconds."
+        - name: nodes
+          type: list<SemanticNode>
+          shape: list
+          description: "Projected nodes from current observations."
+        - name: edge_candidates
+          type: list<SemanticEdge>
+          shape: list
+          description: "Proposed edges based on geometric proximity."
+      producers: [sego_gauge_anchor]
+      consumers: [logos_consensus_solver]
+    - id: StabilizedGraph
+      fields:
+        - name: timestamp_ns
+          type: uint64
+          shape: scalar
+          description: "Time of stabilization."
+        - name: nodes
+          type: list<SemanticNode>
+          shape: list
+          description: "Nodes with adjusted embedding values."
+        - name: edges
+          type: list<SemanticEdge>
+          shape: list
+          description: "Validated edges (low-weight edges pruned)."
+        - name: global_energy
+          type: float32
+          shape: scalar
+          description: "Residual energy of the system (lower is better)."
+      producers: [logos_consensus_solver]
+      consumers: [imago_intent_planner, app_mission_control]
+    - id: ReasoningTrace
+      fields:
+        - name: timestamp_ns
+          type: uint64
+          shape: scalar
+          description: "Creation time."
+        - name: target_state
+          type: list<SemanticNode>
+          shape: list
+          description: "S*: Desired future state of relevant nodes."
+        - name: trajectory_coeffs
+          type: float32_array
+          shape: "(dynamic,)"
+          description: "Polynomial/Spline coefficients defining the path."
+        - name: curvature
+          type: float32
+          shape: scalar
+          description: "Forman-Ricci curvature scalar of active cluster."
+        - name: valid_until_ns
+          type: uint64
+          shape: scalar
+          description: "Expiration time for this trace."
+      producers: [imago_intent_planner]
+      consumers: [ortsf_fabric_controller]
+    - id: ActuatorCommand
+      fields:
+        - name: timestamp_ns
+          type: uint64
+          shape: scalar
+          description: "Command time."
+        - name: mode
+          type: enum
+          shape: scalar
+          description: "POSITION | VELOCITY | TORQUE | IMPEDANCE"
+        - name: command_values
+          type: float32_array
+          shape: "(N,)"
+          description: "Values corresponding to the mode."
+      producers: [ortsf_fabric_controller]
+      consumers: [hal_actuator_bridge]
+    - id: MissionGoal
+      fields:
+        - name: goal_id
+          type: string
+          shape: scalar
+          description: "Unique ID for this mission."
+        - name: verb
+          type: string
+          shape: scalar
+          description: "e.g., 'POUR', 'GRASP', 'MONITOR'."
+        - name: target_node_id
+          type: uint64
+          shape: scalar
+          description: "ID of the primary object of interest."
+        - name: constraints
+          type: dictionary
+          shape: map
+          description: "Task-specific constraints (e.g., 'keep_upright')."
+      producers: [app_mission_control]
+      consumers: [imago_intent_planner]
+    - id: ConstraintConfig
+      fields:
+        - name: weights
+          type: dictionary<string, float>
+          shape: map
+          description: "Importance weights for different constraint types."
+        - name: max_iterations
+          type: uint32
+          shape: scalar
+          description: "Budget for the solver loop."
+        - name: learning_rate
+          type: float32
+          shape: scalar
+          description: "Eta: Step size for gradient descent."
+      producers: [app_mission_control]
+      consumers: [logos_consensus_solver]
+
+    - id: EdgeKey
+      fields:
+        - name: source_id
+          type: uint64
+          shape: scalar
+          description: "Source node ID."
+        - name: target_id
+          type: uint64
+          shape: scalar
+          description: "Target node ID."
+      producers: [onn_relation_encoder]
+      consumers: [logos_consensus_solver]
+
+    - id: EdgeEmbeddingState
+      fields:
+        - name: timestamp_ns
+          type: uint64
+          shape: scalar
+          description: "Observation time."
+        - name: edge_keys
+          type: list<EdgeKey>
+          shape: list
+          description: "Edge identifiers."
+        - name: embeddings
+          type: list<float32_array[32]>
+          shape: list
+          description: "Edge embeddings (x_obs)."
+        - name: weights
+          type: float32_array
+          shape: "(N,)"
+          description: "Optional edge weights (confidence/prior)."
+      producers: [onn_relation_encoder]
+      consumers: [logos_consensus_solver]
+
+    - id: CycleBasis
+      fields:
+        - name: cycle_matrix
+          type: float32_array
+          shape: "(Q, M)"
+          description: "Cycle matrix C."
+        - name: tau
+          type: float32_array
+          shape: "(Q,)"
+          description: "Target cycle values."
+        - name: edge_keys
+          type: list<EdgeKey>
+          shape: list
+          description: "Edge ordering for C columns."
+      producers: [logos_consensus_solver]
+      consumers: [logos_consensus_solver]
+
+    - id: ONNSolverConfig
+      fields:
+        - name: step_size
+          type: float32
+          shape: scalar
+          description: "Gradient step size (eta)."
+        - name: steps
+          type: uint32
+          shape: scalar
+          description: "Inner loop steps (K)."
+        - name: projection_alpha
+          type: float32
+          shape: scalar
+          description: "Relaxed projection strength (alpha)."
+        - name: lambda_context
+          type: float32
+          shape: scalar
+          description: "Context loss weight."
+        - name: lambda_ricci
+          type: float32
+          shape: scalar
+          description: "Ricci regularization weight."
+        - name: lambda_smooth
+          type: float32
+          shape: scalar
+          description: "Smoothness weight."
+        - name: lambda_var
+          type: float32
+          shape: scalar
+          description: "Anti-collapse variance weight."
+      producers: [es_trainer]
+      consumers: [logos_consensus_solver]
+
+    - id: ESConfig
+      fields:
+        - name: algorithm
+          type: string
+          shape: scalar
+          description: "ES algorithm name (CMA-ES)."
+        - name: population_size
+          type: uint32
+          shape: scalar
+          description: "Population size."
+        - name: sigma
+          type: float32
+          shape: scalar
+          description: "Search scale."
+        - name: elite_fraction
+          type: float32
+          shape: scalar
+          description: "Elite fraction."
+        - name: seed
+          type: uint32
+          shape: scalar
+          description: "Random seed."
+        - name: max_generations
+          type: uint32
+          shape: scalar
+          description: "Max generations."
+        - name: parameter_bounds
+          type: dictionary<string, list<float32>>
+          shape: map
+          description: "Parameter bounds [min, max]."
+      producers: [es_trainer]
+      consumers: [es_trainer]
+
+    - id: EvalMetrics
+      fields:
+        - name: violation_mean
+          type: float32
+          shape: scalar
+          description: "Average constraint violation."
+        - name: violation_max
+          type: float32
+          shape: scalar
+          description: "Maximum constraint violation."
+        - name: drift_mean
+          type: float32
+          shape: scalar
+          description: "Average drift from observations."
+        - name: ricci_energy
+          type: float32
+          shape: scalar
+          description: "Sum of Ricci curvature squared."
+        - name: smoothness
+          type: float32
+          shape: scalar
+          description: "Average step-to-step change."
+        - name: latency_mean
+          type: float32
+          shape: scalar
+          description: "Average recovery latency."
+        - name: collapse_score
+          type: float32
+          shape: scalar
+          description: "Embedding variance proxy."
+        - name: contradiction_rate
+          type: float32
+          shape: scalar
+          description: "Optional probe-based contradiction rate."
+      producers: [eval_gate]
+      consumers: [es_trainer]
+
+    - id: GateReport
+      fields:
+        - name: passed
+          type: bool
+          shape: scalar
+          description: "Overall pass/fail."
+        - name: failed_gates
+          type: list<string>
+          shape: list
+          description: "Failed gate IDs."
+        - name: metrics
+          type: EvalMetrics
+          shape: struct
+          description: "Metrics used for gating."
+      producers: [eval_gate]
+      consumers: [app_mission_control]
+
+    - id: ESReport
+      fields:
+        - name: generation
+          type: uint32
+          shape: scalar
+          description: "Generation index."
+        - name: best_fitness
+          type: float32
+          shape: scalar
+          description: "Best fitness value."
+        - name: best_params
+          type: dictionary<string, float32>
+          shape: map
+          description: "Best parameter vector."
+        - name: metrics
+          type: EvalMetrics
+          shape: struct
+          description: "Metrics for best candidate."
+      producers: [es_trainer]
+      consumers: [app_mission_control]
+
+  math_to_code_mapping:
+    - id: eq_state_vector
+      equation: "S_i = [B_i; F_i; I_i]"
+      file: "src/onn/core/tensors.py"
+      function: "SemanticNode.__post_init__"
+      notes: "Validates and normalizes tensor shapes."
+    - id: eq_edge_repr
+      equation: "E_ij = [r_ij; w_ij]"
+      file: "src/onn/core/tensors.py"
+      function: "SemanticEdge.__post_init__"
+      notes: "Validates embedding and weight/probability."
+    - id: eq_sego_detection
+      equation: "O = Detector(z)"
+      file: "src/onn/ops/sego_anchor.py"
+      function: "SEGOGaugeAnchor._simple_detection"
+      notes: "Placeholder detector for V0."
+    - id: eq_sego_projection
+      equation: "B_k <- GeometricFit, F_k <- VisualEncoder, I_k <- 0"
+      file: "src/onn/ops/sego_anchor.py"
+      function: "SEGOGaugeAnchor._project_to_nodes"
+      notes: "Uses SimpleFeatureEncoder for B/F; intent currently derived by mapping (compliance gap)."
+    - id: eq_edge_proposal
+      equation: "dist(B_i, B_j) < delta_prox -> E_ij"
+      file: "src/onn/ops/sego_anchor.py"
+      function: "SEGOGaugeAnchor._generate_edge_candidates"
+      notes: "Uses _compute_proximity with bound tensors."
+    - id: eq_logos_update
+      equation: "S^{k+1} = Pi_M(S^k - eta * grad L_total)"
+      file: "src/onn/ops/logos_solver.py"
+      function: "LOGOSSolver.solve"
+      notes: "Uses torch.autograd.grad and project_to_manifold."
+    - id: eq_total_loss
+      equation: "L_total = lambda_phy*L_phy + lambda_log*L_log + lambda_reg*L_reg"
+      file: "src/onn/ops/logos_solver.py"
+      function: "compute_total_loss"
+      notes: "Mapped to data/phys/logic components in code."
+    - id: eq_phys_loss
+      equation: "C_inter / C_support"
+      file: "src/onn/ops/logos_solver.py"
+      function: "compute_phys_loss"
+      notes: "Currently uses cosine similarity heuristic."
+    - id: eq_logic_loss
+      equation: "C_asym / TransE"
+      file: "src/onn/ops/logos_solver.py"
+      function: "compute_logic_loss"
+      notes: "TransE-style embedding loss."
+    - id: eq_projection
+      equation: "Pi_M: normalize bound, clamp intent"
+      file: "src/onn/ops/logos_solver.py"
+      function: "project_to_manifold"
+      notes: "Enforces bound unit sphere and intent [0,1]."
+    - id: eq_forman_ricci
+      equation: "Ric(E_ij) = 4 - deg(i) - deg(j) + 3*triangles"
+      file: "src/onn/modules/curvature.py"
+      function: "forman_ricci_curvature"
+      notes: "Simplified combinatorial curvature implementation."
+    - id: eq_imago_trace
+      equation: "tau(t) = integral grad phi"
+      file: "src/onn/ops/imago_planner.py"
+      function: "IMAGOPlanner._compute_trajectory"
+      notes: "Cubic interpolation approximation for V0."
+    - id: eq_small_gain
+      equation: "gamma_onn * gamma_ortsf < 1"
+      file: "src/onn/core/constraint_config.py"
+      function: "validate_constraint_config"
+      notes: "Checks small-gain condition in config."
+
+  file_inventory:
+    - path: "src/onn/core/tensors.py"
+      kind: module
+      module_id: sego_gauge_anchor
+      status: COMPLETE
+      purpose: "Schema dataclasses per spec/11_interfaces.ir.yml."
+      classes:
+        - name: SemanticNode
+          methods:
+            - __post_init__
+            - _validate_tensor
+            - combined_state
+            - copy
+            - distance_to
+        - name: SemanticEdge
+          methods:
+            - __post_init__
+            - edge_key
+            - effective_strength
+            - copy
+        - name: RawSemanticGraph
+          methods:
+            - get_node
+            - node_ids
+        - name: StabilizedGraph
+          methods:
+            - get_node
+            - get_edges_for_node
+            - node_ids
+            - adjacency_dict
+        - name: ReasoningTrace
+          methods:
+            - is_valid
+        - name: ControlMode
+          methods: []
+        - name: ActuatorCommand
+          methods:
+            - __post_init__
+        - name: JointState
+          methods:
+            - __post_init__
+        - name: SensorObservation
+          methods: []
+        - name: MissionGoal
+          methods: []
+        - name: ConstraintConfig
+          methods: []
+      functions: []
+      tests:
+        - "tests/unit/test_core_tensors.py"
+    - path: "src/onn/core/graph_utils.py"
+      kind: module
+      module_id: logos_consensus_solver
+      status: COMPLETE
+      purpose: "Graph helpers for adjacency, lookup, validation, and pruning."
+      classes:
+        - name: GraphValidationError
+          methods: []
+      functions:
+        - build_adjacency
+        - build_adjacency_set
+        - build_weighted_adjacency
+        - node_lookup
+        - get_node
+        - get_node_ids
+        - edge_lookup
+        - get_edge
+        - get_edges_for_node
+        - get_outgoing_edges
+        - get_incoming_edges
+        - validate_graph
+        - is_connected
+        - prune_edges
+        - prune_edges_by_weight
+        - compute_node_degrees
+        - compute_weighted_degrees
+        - _get_edges
+        - copy_graph_structure
+      tests:
+        - "tests/unit/test_graph_utils.py"
+    - path: "src/onn/core/constraint_config.py"
+      kind: module
+      module_id: logos_consensus_solver
+      status: COMPLETE
+      purpose: "ConstraintConfig loading, merging, validation, and conversion."
+      classes:
+        - name: WeightsConfig
+          methods: []
+        - name: SolverConfig
+          methods: []
+        - name: PhysicsConfig
+          methods: []
+        - name: PruningConfig
+          methods: []
+        - name: TopologyConfig
+          methods: []
+        - name: StabilityConfig
+          methods: []
+        - name: ConstraintConfigFull
+          methods:
+            - to_dict
+            - from_dict
+      functions:
+        - get_default_config_path
+        - load_constraint_config
+        - load_constraint_config_dict
+        - merge_constraint_config
+        - merge_from_environment
+        - validate_constraint_config
+        - _deep_merge
+        - get_default_constraint_config
+        - to_logos_config
+      tests:
+        - "tests/unit/test_constraint_config.py"
+    - path: "config/constraint_defaults.yaml"
+      kind: config
+      module_id: logos_consensus_solver
+      status: COMPLETE
+      purpose: "Default solver hyperparameters."
+      tests: []
+    - path: "src/onn/ops/sego_anchor.py"
+      kind: module
+      module_id: sego_gauge_anchor
+      status: PARTIAL
+      purpose: "SEGO gauge anchoring; builds RawSemanticGraph."
+      classes:
+        - name: FeatureEncoder
+          methods:
+            - encode_visual
+            - encode_depth
+        - name: SimpleFeatureEncoder
+          methods:
+            - __init__
+            - encode_visual
+            - encode_depth
+        - name: Detection
+          methods: []
+        - name: SEGOConfig
+          methods: []
+        - name: SEGOGaugeAnchor
+          methods:
+            - __init__
+            - process
+            - _simple_detection
+            - _project_to_nodes
+            - _extract_patch
+            - _compute_intent
+            - _generate_edge_candidates
+            - _compute_proximity
+            - _compute_relation_embedding
+            - reset
+            - get_node
+      functions:
+        - create_default_sego_anchor
+      tests:
+        - "tests/smoke/test_sego_one_frame.py"
+      compliance_notes:
+        - "_compute_intent uses hard-coded normalization constants; violates no-magic-numbers constraint."
+    - path: "src/onn/ops/logos_solver.py"
+      kind: module
+      module_id: logos_consensus_solver
+      status: PARTIAL
+      purpose: "LOGOS projection-consensus solver with PyTorch autograd losses."
+      classes:
+        - name: LOGOSConfig
+          methods: []
+        - name: SolverResult
+          methods: []
+        - name: LOGOSSolver
+          methods:
+            - __init__
+            - solve
+            - _nodes_to_tensor
+            - _edges_to_tensors
+            - _tensor_to_nodes
+            - _prune_edges
+            - get_last_result
+            - reset
+      functions:
+        - compute_data_loss
+        - compute_phys_loss
+        - compute_logic_loss
+        - compute_total_loss
+        - project_to_manifold
+        - create_default_solver
+        - create_realtime_solver
+      tests:
+        - "tests/unit/test_logos_solver.py"
+        - "tests/smoke/test_logos_solver_basic.py"
+      compliance_notes:
+        - "Does not hold last valid state on non-convergence (spec/01_constraints.md)."
+    - path: "src/onn/modules/curvature.py"
+      kind: module
+      module_id: imago_intent_planner
+      status: COMPLETE
+      purpose: "Forman-Ricci curvature and clustering utilities."
+      classes:
+        - name: CurvatureCluster
+          methods: []
+      functions:
+        - forman_ricci_curvature
+        - forman_ricci_node_curvature
+        - graph_average_curvature
+        - identify_functional_clusters
+        - curvature_gradient_field
+        - _build_adjacency
+        - _build_edge_weight_map
+        - _compute_weighted_degrees
+        - _edge_key
+        - _find_triangles_containing_edge
+      tests:
+        - "tests/unit/test_curvature.py"
+    - path: "src/onn/ops/imago_planner.py"
+      kind: module
+      module_id: imago_intent_planner
+      status: COMPLETE
+      purpose: "IMAGO planner that builds ReasoningTrace from graph and goal."
+      classes:
+        - name: IMAGOConfig
+          methods: []
+        - name: IMAGOPlanner
+          methods:
+            - __init__
+            - plan
+            - _select_target_state
+            - _apply_goal_intent
+            - _encode_goal_verb
+            - _compute_trajectory
+            - _estimate_max_velocity
+            - _build_trace
+            - get_last_trace
+            - get_curvature_cache
+      functions:
+        - create_default_imago_planner
+        - create_realtime_imago_planner
+        - interpolate_trace
+        - validate_trace
+      tests:
+        - "tests/smoke/test_imago_trace_basic.py"
+      compliance_notes:
+        - "_encode_goal_verb uses hard-coded blend/scaling factors; violates no-magic-numbers constraint."
+    - path: "src/ortsf/fabric/ortsf_fabric.py"
+      kind: module
+      module_id: ortsf_fabric_controller
+      status: COMPLETE
+      purpose: "ORTSF delay prediction, trace interpolation, and command output."
+      classes:
+        - name: ORTSFConfig
+          methods: []
+        - name: ORTSFFabric
+          methods:
+            - __init__
+            - step
+            - _predict_delay
+            - _interpolate_trace
+            - _compute_command
+            - _get_current_position
+            - _estimate_velocity
+            - _clamp_velocity
+            - _apply_safety_limits
+            - _update_history
+            - _is_trace_valid
+            - update_delay_estimate
+            - get_estimated_delay_ns
+            - reset
+      functions:
+        - create_default_ortsf_fabric
+        - create_realtime_ortsf_fabric
+      tests:
+        - "tests/smoke/test_ortsf_fabric_basic.py"
+      compliance_notes:
+        - "Hardcoded gains/limits in _compute_command and _apply_safety_limits."
+    - path: "src/hal/sensor_bridge/sensor_bridge.py"
+      kind: module
+      module_id: hal_sensor_bridge
+      status: COMPLETE
+      purpose: "Mock SensorObservation acquisition and time sync."
+      classes:
+        - name: SensorBridgeConfig
+          methods: []
+        - name: SensorBridge
+          methods:
+            - __init__
+            - acquire
+            - _mock_observation
+            - _generate_mock_rgb
+            - _generate_mock_depth
+            - _generate_mock_joint_state
+            - _hardware_observation
+            - get_last_observation
+            - get_acquisition_count
+            - is_synchronized
+            - reset
+      functions:
+        - create_default_sensor_bridge
+        - create_mock_sensor_bridge
+      tests:
+        - "tests/smoke/test_sensor_bridge_basic.py"
+    - path: "src/hal/actuator_bridge/actuator_bridge.py"
+      kind: module
+      module_id: hal_actuator_bridge
+      status: COMPLETE
+      purpose: "Clamp and forward ActuatorCommand."
+      classes:
+        - name: ActuatorBridgeConfig
+          methods: []
+        - name: ActuatorBridge
+          methods:
+            - __init__
+            - _init_position_limits
+            - _init_velocity_limits
+            - _init_torque_limits
+            - send
+            - _validate_command
+            - _clamp
+            - _check_rate_limit
+            - _send_to_hardware
+            - register_send_callback
+            - get_last_command
+            - get_command_count
+            - get_clamped_count
+            - get_limits
+            - reset
+      functions:
+        - create_default_actuator_bridge
+        - create_mock_actuator_bridge
+        - create_safe_actuator_bridge
+      tests:
+        - "tests/smoke/test_actuator_bridge_basic.py"
+    - path: "src/app/mission_control/mission_control.py"
+      kind: module
+      module_id: app_mission_control
+      status: COMPLETE
+      purpose: "Publish MissionGoal and expose graph monitoring."
+      classes:
+        - name: MissionControlConfig
+          methods: []
+        - name: GraphSummary
+          methods: []
+        - name: MissionControl
+          methods:
+            - __init__
+            - publish_goal
+            - update_graph
+            - latest_graph_summary
+            - get_current_goal
+            - clear_goal
+            - _compute_summary
+            - _compute_degrees
+            - _check_connected
+            - _compute_energy_trend
+            - _check_anomalies
+            - register_goal_callback
+            - register_graph_callback
+            - register_alert_callback
+            - get_goal_history
+            - get_graph_history
+            - get_energy_history
+            - get_latest_graph
+            - find_node_in_graph
+            - reset
+      functions:
+        - create_default_mission_control
+        - create_monitoring_mission_control
+      tests:
+        - "tests/smoke/test_mission_control_basic.py"
+    - path: "src/onn/core/graph.py"
+      kind: module
+      module_id: logos_consensus_solver
+      status: NOT_STARTED
+      purpose: "Graph representation for edge-embedding ONN core."
+      classes:
+        - name: EdgeGraph
+          methods:
+            - from_raw_graph
+            - edge_index
+      functions: []
+      tests:
+        - "tests/unit/test_graph_core.py"
+    - path: "src/onn/core/cycles.py"
+      kind: module
+      module_id: logos_consensus_solver
+      status: NOT_STARTED
+      purpose: "Cycle basis construction for constraint matrix C."
+      classes: []
+      functions:
+        - build_cycle_basis
+        - cycle_matrix
+        - cycle_targets
+      tests:
+        - "tests/unit/test_cycles.py"
+    - path: "src/onn/core/projection.py"
+      kind: module
+      module_id: logos_consensus_solver
+      status: NOT_STARTED
+      purpose: "Projection operators for Cx=tau constraints."
+      classes: []
+      functions:
+        - project_constraints
+        - relaxed_projection
+      tests:
+        - "tests/unit/test_projection.py"
+    - path: "src/onn/core/losses.py"
+      kind: module
+      module_id: logos_consensus_solver
+      status: NOT_STARTED
+      purpose: "Loss terms for ONN edge-embedding solver."
+      classes: []
+      functions:
+        - loss_data
+        - loss_context
+        - loss_ricci
+        - loss_smooth
+        - loss_variance
+        - total_loss
+      tests:
+        - "tests/unit/test_losses.py"
+    - path: "src/onn/core/solver.py"
+      kind: module
+      module_id: logos_consensus_solver
+      status: NOT_STARTED
+      purpose: "Projection–Consensus solver for edge embeddings."
+      classes:
+        - name: PCSolverConfig
+          methods: []
+        - name: ProjectionConsensusSolver
+          methods:
+            - __init__
+            - step
+            - solve
+      functions: []
+      tests:
+        - "tests/unit/test_solver_pc.py"
+    - path: "src/onn/relation/basis.py"
+      kind: module
+      module_id: onn_relation_encoder
+      status: NOT_STARTED
+      purpose: "Pair feature extraction for relation embeddings."
+      classes: []
+      functions:
+        - compute_pair_features
+        - standardize_features
+      tests:
+        - "tests/unit/test_relation_basis.py"
+    - path: "src/onn/relation/param.py"
+      kind: module
+      module_id: onn_relation_encoder
+      status: NOT_STARTED
+      purpose: "x_obs parameterization for edge embeddings."
+      classes:
+        - name: RelationParamConfig
+          methods: []
+      functions:
+        - encode_relation
+        - random_projection
+      tests:
+        - "tests/unit/test_relation_param.py"
+    - path: "src/onn/es/ask_tell.py"
+      kind: module
+      module_id: es_trainer
+      status: NOT_STARTED
+      purpose: "CMA-ES ask/tell loop implementation."
+      classes:
+        - name: CMAESState
+          methods: []
+        - name: CMAESTrainer
+          methods:
+            - __init__
+            - ask
+            - tell
+      functions: []
+      tests:
+        - "tests/unit/test_es_ask_tell.py"
+    - path: "src/onn/es/fitness.py"
+      kind: module
+      module_id: es_trainer
+      status: NOT_STARTED
+      purpose: "Episodic fitness evaluation for ES."
+      classes:
+        - name: FitnessConfig
+          methods: []
+      functions:
+        - evaluate_episode
+        - aggregate_metrics
+      tests:
+        - "tests/unit/test_es_fitness.py"
+    - path: "src/onn/es/schedule.py"
+      kind: module
+      module_id: es_trainer
+      status: NOT_STARTED
+      purpose: "Hyperparameter schedules (eta, K, lambdas)."
+      classes:
+        - name: ScheduleConfig
+          methods: []
+      functions:
+        - apply_schedule
+      tests:
+        - "tests/unit/test_es_schedule.py"
+    - path: "src/onn/eval/metrics.py"
+      kind: module
+      module_id: eval_gate
+      status: NOT_STARTED
+      purpose: "Metric computation for violations, drift, Ricci, latency."
+      classes: []
+      functions:
+        - compute_violation
+        - compute_drift
+        - compute_ricci_energy
+        - compute_smoothness
+        - compute_latency
+        - compute_collapse_score
+      tests:
+        - "tests/unit/test_eval_metrics.py"
+    - path: "src/onn/eval/gates.py"
+      kind: module
+      module_id: eval_gate
+      status: NOT_STARTED
+      purpose: "Acceptance gates and failure labeling."
+      classes:
+        - name: GateConfig
+          methods: []
+        - name: GateResult
+          methods: []
+      functions:
+        - evaluate_gates
+      tests:
+        - "tests/unit/test_eval_gates.py"
+    - path: "src/onn/eval/reports.py"
+      kind: module
+      module_id: eval_gate
+      status: NOT_STARTED
+      purpose: "JSONL logging and summary reporting."
+      classes:
+        - name: ReportConfig
+          methods: []
+      functions:
+        - write_report
+        - summarize_reports
+      tests:
+        - "tests/unit/test_eval_reports.py"
+    - path: "src/onn/__init__.py"
+      kind: package_init
+      module_id: sego_gauge_anchor
+      status: COMPLETE
+      purpose: "Exports core/ops/modules symbols."
+    - path: "src/onn/core/__init__.py"
+      kind: package_init
+      module_id: sego_gauge_anchor
+      status: COMPLETE
+      purpose: "Exports core dataclasses and helpers."
+    - path: "src/onn/ops/__init__.py"
+      kind: package_init
+      module_id: sego_gauge_anchor
+      status: COMPLETE
+      purpose: "Exports SEGO/LOGOS/IMAGO operators."
+    - path: "src/onn/modules/__init__.py"
+      kind: package_init
+      module_id: imago_intent_planner
+      status: COMPLETE
+      purpose: "Exports curvature utilities."
+    - path: "src/onn/relation/__init__.py"
+      kind: package_init
+      module_id: onn_relation_encoder
+      status: NOT_STARTED
+      purpose: "Exports relation encoding utilities."
+    - path: "src/onn/es/__init__.py"
+      kind: package_init
+      module_id: es_trainer
+      status: NOT_STARTED
+      purpose: "Exports ES trainer utilities."
+    - path: "src/onn/eval/__init__.py"
+      kind: package_init
+      module_id: eval_gate
+      status: NOT_STARTED
+      purpose: "Exports evaluation metrics and gates."
+    - path: "src/ortsf/__init__.py"
+      kind: package_init
+      module_id: ortsf_fabric_controller
+      status: COMPLETE
+      purpose: "ORTSF package root."
+    - path: "src/ortsf/fabric/__init__.py"
+      kind: package_init
+      module_id: ortsf_fabric_controller
+      status: COMPLETE
+      purpose: "ORTSF fabric exports."
+    - path: "src/hal/__init__.py"
+      kind: package_init
+      module_id: hal_sensor_bridge
+      status: COMPLETE
+      purpose: "HAL package root."
+    - path: "src/hal/sensor_bridge/__init__.py"
+      kind: package_init
+      module_id: hal_sensor_bridge
+      status: COMPLETE
+      purpose: "SensorBridge exports."
+    - path: "src/hal/actuator_bridge/__init__.py"
+      kind: package_init
+      module_id: hal_actuator_bridge
+      status: COMPLETE
+      purpose: "ActuatorBridge exports."
+    - path: "src/app/__init__.py"
+      kind: package_init
+      module_id: app_mission_control
+      status: COMPLETE
+      purpose: "App package root."
+    - path: "src/app/mission_control/__init__.py"
+      kind: package_init
+      module_id: app_mission_control
+      status: COMPLETE
+      purpose: "MissionControl exports."
+    - path: "src/__init__.py"
+      kind: package_init
+      module_id: unknown
+      status: GHOST
+      purpose: "Top-level package marker (not in plan)."
+
+  tests_inventory:
+    unit_tests:
+      - "tests/unit/test_core_tensors.py"
+      - "tests/unit/test_graph_utils.py"
+      - "tests/unit/test_constraint_config.py"
+      - "tests/unit/test_logos_solver.py"
+      - "tests/unit/test_curvature.py"
+      - "tests/unit/test_logos_energy.py"  # missing
+    smoke_tests:
+      - "tests/smoke/test_sensor_bridge_basic.py"
+      - "tests/smoke/test_actuator_bridge_basic.py"
+      - "tests/smoke/test_sego_one_frame.py"
+      - "tests/smoke/test_logos_solver_basic.py"
+      - "tests/smoke/test_imago_trace_basic.py"
+      - "tests/smoke/test_ortsf_fabric_basic.py"
+      - "tests/smoke/test_mission_control_basic.py"
+      - "tests/smoke/test_csa_e2e_pipeline.py"
+
+  task_execution_status:
+    IMPL_001: done
+    IMPL_002: done
+    IMPL_003: done
+    IMPL_004: done
+    IMPL_005: in_progress
+    IMPL_006: done
+    IMPL_007: done
+    IMPL_008: done
+    IMPL_009: done
+    IMPL_010: done
+    IMPL_011: done
+    IMPL_012: done
+    IMPL_013: done
+    IMPL_014: done
+    TEST_001: open
+    CPL_001: open
+    CPL_002: open
+
+  task_tickets:
+    - task_id: IMPL_001
+      title: "Implement core schema dataclasses"
+      description: "Create schema dataclasses in src/onn/core/tensors.py per spec/11_interfaces.ir.yml."
+      target_files:
+        - path: "src/onn/core/tensors.py"
+          action: MODIFY
+          classes_to_implement:
+            - SemanticNode
+            - SemanticEdge
+            - RawSemanticGraph
+            - StabilizedGraph
+            - ReasoningTrace
+            - ActuatorCommand
+            - ControlMode
+            - JointState
+            - SensorObservation
+            - MissionGoal
+            - ConstraintConfig
+      depends_on: []
+      priority: HIGH
+      acceptance_criteria:
+        - "All schema classes import without errors."
+        - "Field shapes match spec/11_interfaces.ir.yml."
+        - "tests/unit/test_core_tensors.py passes."
+      test_requirements:
+        - file: "tests/unit/test_core_tensors.py"
+          cases:
+            - "test_semantic_node_shapes"
+            - "test_semantic_edge_validations"
+      status: done
+      claude_instructions: "Verify dataclass fields and shape validation per spec."
+      estimated_effort: "2-3 hours"
+
+    - task_id: IMPL_002
+      title: "Add graph utilities and validation"
+      description: "Implement adjacency, lookup, and graph validation in src/onn/core/graph_utils.py."
+      target_files:
+        - path: "src/onn/core/graph_utils.py"
+          action: MODIFY
+          functions_to_implement:
+            - build_adjacency
+            - validate_graph
+            - prune_edges
+      depends_on: [IMPL_001]
+      priority: HIGH
+      acceptance_criteria:
+        - "Graph utilities cover adjacency and node lookup."
+        - "tests/unit/test_graph_utils.py passes."
+      test_requirements:
+        - file: "tests/unit/test_graph_utils.py"
+          cases:
+            - "test_build_adjacency"
+            - "test_validate_graph"
+      status: done
+      claude_instructions: "Keep utilities framework-agnostic and deterministic."
+      estimated_effort: "1-2 hours"
+
+    - task_id: IMPL_003
+      title: "Define ConstraintConfig defaults"
+      description: "Implement config parsing and defaults in src/onn/core/constraint_config.py and config/constraint_defaults.yaml."
+      target_files:
+        - path: "src/onn/core/constraint_config.py"
+          action: MODIFY
+        - path: "config/constraint_defaults.yaml"
+          action: MODIFY
+      depends_on: [IMPL_001]
+      priority: HIGH
+      acceptance_criteria:
+        - "ConstraintConfig loads defaults and overrides."
+        - "tests/unit/test_constraint_config.py passes."
+      test_requirements:
+        - file: "tests/unit/test_constraint_config.py"
+          cases:
+            - "test_load_defaults"
+            - "test_merge_overrides"
+      status: done
+      claude_instructions: "Honor environment variable overrides and validate small-gain."
+      estimated_effort: "1-2 hours"
+
+    - task_id: IMPL_004
+      title: "Implement SEGO gauge anchoring baseline"
+      description: "Implement f_enc and f_geo placeholders per spec/02_onn_math_spec.md Section 2.1."
+      target_files:
+        - path: "src/onn/ops/sego_anchor.py"
+          action: MODIFY
+      depends_on: [IMPL_001, IMPL_002]
+      priority: HIGH
+      acceptance_criteria:
+        - "SEGO returns RawSemanticGraph with nodes and edge_candidates."
+        - "tests/smoke/test_sego_one_frame.py passes."
+      test_requirements:
+        - file: "tests/smoke/test_sego_one_frame.py"
+          cases:
+            - "test_sego_one_frame"
+      status: done
+      claude_instructions: "Keep detector placeholder; ensure consistent node IDs."
+      estimated_effort: "3-4 hours"
+
+    - task_id: IMPL_005
+      title: "Implement LOGOS energy terms (PyTorch)"
+      description: "Implement L_data, L_phys, L_logic per spec/02_onn_math_spec.md Section 4 using torch and autograd."
+      target_files:
+        - path: "src/onn/ops/logos_solver.py"
+          action: MODIFY
+      depends_on: [IMPL_001, IMPL_002, IMPL_003]
+      priority: HIGH
+      acceptance_criteria:
+        - "Energy terms compute finite values for small graphs."
+        - "Energy computation runs in PyTorch and supports autograd."
+        - "tests/unit/test_logos_energy.py passes."
+      test_requirements:
+        - file: "tests/unit/test_logos_energy.py"
+          cases:
+            - "test_energy_terms_finite"
+      status: in_progress
+      claude_instructions: "Align loss composition with spec Section 4; add missing unit tests."
+      estimated_effort: "3-4 hours"
+
+    - task_id: IMPL_006
+      title: "Implement LOGOS projection-consensus solver (PyTorch)"
+      description: "Implement solver loop with torch.autograd gradients and projection."
+      target_files:
+        - path: "src/onn/ops/logos_solver.py"
+          action: MODIFY
+      depends_on: [IMPL_005]
+      priority: HIGH
+      acceptance_criteria:
+        - "Solver respects max_iterations and tolerance."
+        - "Gradients are computed via torch.autograd."
+        - "tests/smoke/test_logos_solver_basic.py passes."
+      test_requirements:
+        - file: "tests/unit/test_logos_solver.py"
+          cases:
+            - "test_logos_solver_convergence"
+        - file: "tests/smoke/test_logos_solver_basic.py"
+          cases:
+            - "test_logos_solver_basic"
+      status: done
+      claude_instructions: "Preserve projection step and warm-start support."
+      estimated_effort: "3-4 hours"
+
+    - task_id: IMPL_007
+      title: "Implement Forman-Ricci curvature module"
+      description: "Align curvature formula with spec/02_onn_math_spec.md Section 2.3."
+      target_files:
+        - path: "src/onn/modules/curvature.py"
+          action: MODIFY
+      depends_on: [IMPL_001, IMPL_002]
+      priority: HIGH
+      acceptance_criteria:
+        - "Curvature computed for edges and nodes."
+        - "tests/unit/test_curvature.py passes."
+      test_requirements:
+        - file: "tests/unit/test_curvature.py"
+          cases:
+            - "test_edge_curvature"
+            - "test_node_curvature"
+      status: done
+      claude_instructions: "Keep computation deterministic; avoid external deps."
+      estimated_effort: "2-3 hours"
+
+    - task_id: IMPL_008
+      title: "Implement IMAGO planner"
+      description: "Generate ReasoningTrace using curvature and MissionGoal."
+      target_files:
+        - path: "src/onn/ops/imago_planner.py"
+          action: MODIFY
+      depends_on: [IMPL_006, IMPL_007]
+      priority: HIGH
+      acceptance_criteria:
+        - "ReasoningTrace.valid_until_ns and curvature are populated."
+        - "tests/smoke/test_imago_trace_basic.py passes."
+      test_requirements:
+        - file: "tests/smoke/test_imago_trace_basic.py"
+          cases:
+            - "test_imago_trace_basic"
+      status: done
+      claude_instructions: "Use curvature utilities; keep trace horizon from config."
+      estimated_effort: "3-4 hours"
+
+    - task_id: IMPL_009
+      title: "Implement ORTSF fabric baseline"
+      description: "Implement delay prediction, trace interpolation, and ActuatorCommand output."
+      target_files:
+        - path: "src/ortsf/fabric/ortsf_fabric.py"
+          action: MODIFY
+      depends_on: [IMPL_008, IMPL_001]
+      priority: HIGH
+      acceptance_criteria:
+        - "ActuatorCommand output is finite and mode is valid."
+        - "tests/smoke/test_ortsf_fabric_basic.py passes."
+      test_requirements:
+        - file: "tests/smoke/test_ortsf_fabric_basic.py"
+          cases:
+            - "test_ortsf_fabric_basic"
+      status: done
+      claude_instructions: "Maintain stability checks; keep trace interpolation deterministic."
+      estimated_effort: "3-4 hours"
+
+    - task_id: IMPL_010
+      title: "Implement SensorBridge mock"
+      description: "Provide deterministic SensorObservation generation and time sync."
+      target_files:
+        - path: "src/hal/sensor_bridge/sensor_bridge.py"
+          action: MODIFY
+      depends_on: [IMPL_001]
+      priority: HIGH
+      acceptance_criteria:
+        - "SensorObservation timestamps are monotonic."
+        - "tests/smoke/test_sensor_bridge_basic.py passes."
+      test_requirements:
+        - file: "tests/smoke/test_sensor_bridge_basic.py"
+          cases:
+            - "test_sensor_bridge_basic"
+      status: done
+      claude_instructions: "Keep mock deterministic enough for tests."
+      estimated_effort: "2-3 hours"
+
+    - task_id: IMPL_011
+      title: "Implement ActuatorBridge mock"
+      description: "Clamp and validate ActuatorCommand output."
+      target_files:
+        - path: "src/hal/actuator_bridge/actuator_bridge.py"
+          action: MODIFY
+      depends_on: [IMPL_001]
+      priority: HIGH
+      acceptance_criteria:
+        - "Outputs are within configured limits."
+        - "tests/smoke/test_actuator_bridge_basic.py passes."
+      test_requirements:
+        - file: "tests/smoke/test_actuator_bridge_basic.py"
+          cases:
+            - "test_actuator_bridge_basic"
+      status: done
+      claude_instructions: "Ensure validation errors are explicit."
+      estimated_effort: "2-3 hours"
+
+    - task_id: IMPL_012
+      title: "Implement MissionControl"
+      description: "Publish MissionGoal and provide graph inspection."
+      target_files:
+        - path: "src/app/mission_control/mission_control.py"
+          action: MODIFY
+      depends_on: [IMPL_001, IMPL_006]
+      priority: HIGH
+      acceptance_criteria:
+        - "MissionGoal can be created and emitted."
+        - "tests/smoke/test_mission_control_basic.py passes."
+      test_requirements:
+        - file: "tests/smoke/test_mission_control_basic.py"
+          cases:
+            - "test_mission_control_basic"
+      status: done
+      claude_instructions: "Keep graph summaries minimal and deterministic."
+      estimated_effort: "2-3 hours"
+
+    - task_id: IMPL_013
+      title: "Create end-to-end mock pipeline test"
+      description: "Implement CSA pipeline test with HAL -> SEGO -> LOGOS -> IMAGO -> ORTSF -> HAL."
+      target_files:
+        - path: "tests/smoke/test_csa_e2e_pipeline.py"
+          action: MODIFY
+      depends_on: [IMPL_004, IMPL_006, IMPL_008, IMPL_009, IMPL_010, IMPL_011, IMPL_012]
+      priority: HIGH
+      acceptance_criteria:
+        - "E2E test produces at least one ActuatorCommand."
+        - "Test exits with code 0."
+      test_requirements:
+        - file: "tests/smoke/test_csa_e2e_pipeline.py"
+          cases:
+            - "test_csa_e2e_pipeline"
+      status: done
+      claude_instructions: "Use mock bridges and deterministic inputs."
+      estimated_effort: "2-3 hours"
+
+    - task_id: IMPL_014
+      title: "Add CSA smoke test scaffolding"
+      description: "Create tests/smoke files for each CSA module per spec/21_test_plan.ir.yml."
+      target_files:
+        - path: "tests/smoke/test_sensor_bridge_basic.py"
+          action: MODIFY
+        - path: "tests/smoke/test_actuator_bridge_basic.py"
+          action: MODIFY
+        - path: "tests/smoke/test_sego_one_frame.py"
+          action: MODIFY
+        - path: "tests/smoke/test_logos_solver_basic.py"
+          action: MODIFY
+        - path: "tests/smoke/test_imago_trace_basic.py"
+          action: MODIFY
+        - path: "tests/smoke/test_ortsf_fabric_basic.py"
+          action: MODIFY
+        - path: "tests/smoke/test_mission_control_basic.py"
+          action: MODIFY
+      depends_on: [IMPL_010, IMPL_011, IMPL_004, IMPL_006, IMPL_008, IMPL_009, IMPL_012]
+      priority: MEDIUM
+      acceptance_criteria:
+        - "Smoke test files exist and execute."
+        - "Tests listed in spec/21_test_plan.ir.yml are present."
+      test_requirements:
+        - file: "tests/smoke"
+          cases:
+            - "all"
+      status: done
+      claude_instructions: "Keep smoke tests fast and deterministic."
+      estimated_effort: "2-3 hours"
+
+    - task_id: TEST_001
+      title: "Add LOGOS energy unit test"
+      description: "Create tests/unit/test_logos_energy.py to cover LOGOS loss terms."
+      target_files:
+        - path: "tests/unit/test_logos_energy.py"
+          action: CREATE
+      depends_on: [IMPL_005]
+      priority: HIGH
+      acceptance_criteria:
+        - "tests/unit/test_logos_energy.py exists."
+        - "Loss terms return finite scalars for small graphs."
+        - "pytest tests/unit/test_logos_energy.py -q passes."
+      test_requirements:
+        - file: "tests/unit/test_logos_energy.py"
+          cases:
+            - "test_energy_terms_finite"
+      status: open
+      claude_instructions: "Use tiny graphs; assert finite and differentiable losses."
+      estimated_effort: "1-2 hours"
+
+    - task_id: CPL_001
+      title: "Remove discrete class/verb mappings from ONN operators"
+      description: "Replace class_name and verb lookup tables with continuous encodings per spec/01_constraints.md."
+      target_files:
+        - path: "src/onn/ops/sego_anchor.py"
+          action: MODIFY
+        - path: "src/onn/ops/imago_planner.py"
+          action: MODIFY
+      depends_on: [IMPL_004, IMPL_008]
+      priority: HIGH
+      acceptance_criteria:
+        - "No class_name or verb lookup tables inside ONN operators."
+        - "Intent tensors derived from continuous encodings."
+        - "Smoke tests still pass."
+      test_requirements:
+        - file: "tests/smoke/test_sego_one_frame.py"
+          cases:
+            - "test_sego_one_frame"
+        - file: "tests/smoke/test_imago_trace_basic.py"
+          cases:
+            - "test_imago_trace_basic"
+      status: open
+      claude_instructions: "Use vector encoders (e.g., hashed embeddings) instead of discrete branches."
+      estimated_effort: "3-4 hours"
+
+    - task_id: CPL_002
+      title: "Move ORTSF hardcoded gains/limits into config"
+      description: "Eliminate magic numbers in ORTSF controller by moving gains/limits to ORTSFConfig or external config."
+      target_files:
+        - path: "src/ortsf/fabric/ortsf_fabric.py"
+          action: MODIFY
+      depends_on: [IMPL_009]
+      priority: HIGH
+      acceptance_criteria:
+        - "Control gains/limits defined in ORTSFConfig or config file."
+        - "No hardcoded gains/limits in ORTSF implementation."
+        - "tests/smoke/test_ortsf_fabric_basic.py passes."
+      test_requirements:
+        - file: "tests/smoke/test_ortsf_fabric_basic.py"
+          cases:
+            - "test_ortsf_fabric_basic"
+      status: open
+      claude_instructions: "Add config fields and plumb through command computation."
+      estimated_effort: "2-3 hours"
+
+  dependency_graph:
+    levels:
+      - level: 0
+        items:
+          - "src/onn/core/tensors.py (IMPL_001)"
+          - "src/hal/sensor_bridge/sensor_bridge.py (IMPL_010)"
+          - "src/hal/actuator_bridge/actuator_bridge.py (IMPL_011)"
+      - level: 1
+        items:
+          - "src/onn/core/graph_utils.py (IMPL_002)"
+          - "src/onn/core/constraint_config.py (IMPL_003)"
+          - "config/constraint_defaults.yaml (IMPL_003)"
+      - level: 2
+        items:
+          - "src/onn/ops/sego_anchor.py (IMPL_004)"
+          - "src/onn/ops/logos_solver.py (IMPL_005/IMPL_006)"
+          - "src/onn/modules/curvature.py (IMPL_007)"
+      - level: 3
+        items:
+          - "src/onn/ops/imago_planner.py (IMPL_008)"
+      - level: 4
+        items:
+          - "src/ortsf/fabric/ortsf_fabric.py (IMPL_009)"
+          - "src/app/mission_control/mission_control.py (IMPL_012)"
+      - level: 5
+        items:
+          - "tests/smoke/test_csa_e2e_pipeline.py (IMPL_013)"
+
+  execution_order:
+    - order: 1
+      task_id: IMPL_001
+      files: ["src/onn/core/tensors.py"]
+      depends_on: []
+      est_time: "2-3h"
+    - order: 2
+      task_id: IMPL_002
+      files: ["src/onn/core/graph_utils.py"]
+      depends_on: [IMPL_001]
+      est_time: "1-2h"
+    - order: 3
+      task_id: IMPL_003
+      files: ["src/onn/core/constraint_config.py", "config/constraint_defaults.yaml"]
+      depends_on: [IMPL_001]
+      est_time: "1-2h"
+    - order: 4
+      task_id: IMPL_004
+      files: ["src/onn/ops/sego_anchor.py"]
+      depends_on: [IMPL_001, IMPL_002]
+      est_time: "3-4h"
+    - order: 5
+      task_id: IMPL_005
+      files: ["src/onn/ops/logos_solver.py", "tests/unit/test_logos_energy.py"]
+      depends_on: [IMPL_001, IMPL_002, IMPL_003]
+      est_time: "3-4h"
+    - order: 6
+      task_id: IMPL_006
+      files: ["src/onn/ops/logos_solver.py"]
+      depends_on: [IMPL_005]
+      est_time: "3-4h"
+    - order: 7
+      task_id: IMPL_007
+      files: ["src/onn/modules/curvature.py"]
+      depends_on: [IMPL_001, IMPL_002]
+      est_time: "2-3h"
+    - order: 8
+      task_id: IMPL_008
+      files: ["src/onn/ops/imago_planner.py"]
+      depends_on: [IMPL_006, IMPL_007]
+      est_time: "3-4h"
+    - order: 9
+      task_id: IMPL_009
+      files: ["src/ortsf/fabric/ortsf_fabric.py"]
+      depends_on: [IMPL_008, IMPL_001]
+      est_time: "3-4h"
+    - order: 10
+      task_id: IMPL_010
+      files: ["src/hal/sensor_bridge/sensor_bridge.py"]
+      depends_on: [IMPL_001]
+      est_time: "2-3h"
+    - order: 11
+      task_id: IMPL_011
+      files: ["src/hal/actuator_bridge/actuator_bridge.py"]
+      depends_on: [IMPL_001]
+      est_time: "2-3h"
+    - order: 12
+      task_id: IMPL_012
+      files: ["src/app/mission_control/mission_control.py"]
+      depends_on: [IMPL_001, IMPL_006]
+      est_time: "2-3h"
+    - order: 13
+      task_id: IMPL_013
+      files: ["tests/smoke/test_csa_e2e_pipeline.py"]
+      depends_on: [IMPL_004, IMPL_006, IMPL_008, IMPL_009, IMPL_010, IMPL_011, IMPL_012]
+      est_time: "2-3h"
+    - order: 14
+      task_id: IMPL_014
+      files: ["tests/smoke"]
+      depends_on: [IMPL_010, IMPL_011, IMPL_004, IMPL_006, IMPL_008, IMPL_009, IMPL_012]
+      est_time: "2-3h"
+    - order: 15
+      task_id: TEST_001
+      files: ["tests/unit/test_logos_energy.py"]
+      depends_on: [IMPL_005]
+      est_time: "1-2h"
+    - order: 16
+      task_id: CPL_001
+      files: ["src/onn/ops/sego_anchor.py", "src/onn/ops/imago_planner.py"]
+      depends_on: [IMPL_004, IMPL_008]
+      est_time: "3-4h"
+    - order: 17
+      task_id: CPL_002
+      files: ["src/ortsf/fabric/ortsf_fabric.py"]
+      depends_on: [IMPL_009]
+      est_time: "2-3h"
+
+  claude_execution_blocks:
+    - id: BLOCK_A_FOUNDATION
+      tasks: [IMPL_001, IMPL_002, IMPL_003]
+      session_count: 1
+    - id: BLOCK_B_PERCEPTION
+      tasks: [IMPL_004]
+      session_count: 1
+    - id: BLOCK_C_COGNITION
+      tasks: [IMPL_005, IMPL_006, IMPL_007]
+      session_count: 2
+    - id: BLOCK_D_INTENT_CONTROL
+      tasks: [IMPL_008, IMPL_009]
+      session_count: 1
+    - id: BLOCK_E_HAL_APP
+      tasks: [IMPL_010, IMPL_011, IMPL_012]
+      session_count: 1
+    - id: BLOCK_F_INTEGRATION
+      tasks: [IMPL_013, IMPL_014]
+      session_count: 1
+    - id: BLOCK_G_COMPLIANCE
+      tasks: [TEST_001, CPL_001, CPL_002]
+      session_count: 1
+
+  validation_checklist:
+    - check: "File Coverage"
+      result: pass
+      notes: "All planned source and test files enumerated."
+    - check: "Schema Coverage"
+      result: pass
+      notes: "All schemas and fields from spec/11_interfaces.ir.yml listed."
+    - check: "Math Coverage"
+      result: pass
+      notes: "All major equations from spec/02_onn_math_spec.md mapped."
+    - check: "Dependency Validity"
+      result: pass
+      notes: "Dependencies align with spec/10_architecture.ir.yml."
+    - check: "Test Coverage"
+      result: partial
+      notes: "Missing tests/unit/test_logos_energy.py (TEST_001)."
+    - check: "No Cycles"
+      result: pass
+      notes: "Dependency graph acyclic."
+    - check: "Constraint Compliance"
+      result: partial
+      notes: "Discrete logic and magic numbers remain (CPL_001, CPL_002)."
+
+  current_gaps:
+    - id: GAP_DISCRETE_LOGIC
+      description: "SEGO/IMAGO use discrete class/verb mappings in critical path."
+      linked_tasks: [CPL_001]
+    - id: GAP_MAGIC_NUMBERS
+      description: "ORTSF uses hardcoded gains/limits instead of config."
+      linked_tasks: [CPL_002]
+    - id: GAP_TEST_LOGOS_ENERGY
+      description: "Missing unit test for LOGOS energy terms."
+      linked_tasks: [TEST_001]

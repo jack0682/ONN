@@ -1,0 +1,822 @@
+metadata:
+  system_name: "CSA (Collaborative Sensing Agent)"
+  backlog_version: "0.1.1"
+  last_updated: "2026-01-04T16:17:52Z"
+  last_updated_by: "Codex_Auditor"
+  related_specs:
+    - "01_constraints.md"
+    - "10_architecture.ir.yml"
+    - "11_interfaces.ir.yml"
+    - "20_impl_plan.ir.yml"
+    - "21_test_plan.ir.yml"
+    - "30_code_status.ir.yml"
+  notes:
+    - "Backlog derived from implementation plan tasks."
+    - "Statuses reflect current code audit in spec/30_code_status.ir.yml."
+    - "Schema mismatches and ghost modules remain the primary blockers."
+    - "Current focus: ONN-ES (edge embeddings, PC solver, ES training, eval gates, related tests)."
+    - "pytest -q failed at collection due to ModuleNotFoundError: No module named 'onn'."
+
+TARGET_TODO_IDS:
+  - "IMPL_001"
+  - "IMPL_002"
+  - "IMPL_003"
+  - "IMPL_004"
+  - "IMPL_005"
+  - "IMPL_006"
+  - "IMPL_007"
+  - "IMPL_008"
+  - "IMPL_009"
+  - "IMPL_010"
+  - "IMPL_011"
+  - "IMPL_012"
+  - "IMPL_013"
+  - "IMPL_014"
+  - "IMPL_015"
+  - "IMPL_016"
+  - "IMPL_017"
+  - "IMPL_018"
+  - "IMPL_019"
+  - "IMPL_020"
+  - "IMPL_021"
+  - "IMPL_022"
+  - "IMPL_023"
+  - "IMPL_024"
+  - "IMPL_025"
+  - "TEST_001"
+  - "TEST_002"
+  - "TEST_003"
+  - "TEST_004"
+  - "TEST_005"
+  - "TEST_006"
+  - "CPL_001"
+  - "CPL_002"
+  - "CPL_003"
+  - "CPL_004"
+  - "CPL_005"
+  - "CPL_006"
+  - "CPL_007"
+  - "CPL_008"
+  - "CPL_009"
+  - "CPL_010"
+  - "CPL_011"
+  - "CPL_012"
+  - "CPL_013"
+  - "CPL_014"
+  - "CPL_015"
+  - "CPL_016"
+
+enums:
+  status:
+    - name: "open"
+      description: "Planned but not started."
+    - name: "in_progress"
+      description: "Currently being worked on."
+    - name: "blocked"
+      description: "Cannot proceed due to dependency."
+    - name: "done"
+      description: "Completed and accepted."
+  priority:
+    - name: "HIGH"
+      description: "Critical path for CSA baseline."
+    - name: "MEDIUM"
+      description: "Important but not blocking the baseline."
+    - name: "LOW"
+      description: "Nice-to-have."
+  origin:
+    - name: "impl_plan"
+      description: "Derived from spec/20_impl_plan.ir.yml."
+    - name: "test_plan"
+      description: "Derived from spec/21_test_plan.ir.yml."
+    - name: "constraints"
+      description: "Derived from spec/01_constraints.md."
+
+items:
+  - id: "IMPL_001"
+    title: "Implement core schema dataclasses"
+    description: "Implement schema dataclasses in src/onn/core/tensors.py per spec/11_interfaces.ir.yml."
+    origin: "impl_plan"
+    related_modules:
+      - "sego_gauge_anchor"
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+      - "ortsf_fabric_controller"
+      - "hal_sensor_bridge"
+      - "hal_actuator_bridge"
+      - "app_mission_control"
+    related_interfaces:
+      - "SemanticNode"
+      - "SemanticEdge"
+      - "SensorObservation"
+      - "JointState"
+      - "RawSemanticGraph"
+      - "StabilizedGraph"
+      - "ReasoningTrace"
+      - "ActuatorCommand"
+      - "MissionGoal"
+      - "ConstraintConfig"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Core dataclasses import without errors."
+      - "Fields and shapes match spec/11_interfaces.ir.yml."
+      - "Unit test tests/unit/test_core_tensors.py passes."
+    status: "done"
+
+  - id: "IMPL_002"
+    title: "Add graph utilities and validation"
+    description: "Implement adjacency, indexing, and graph validation in src/onn/core/graph_utils.py."
+    origin: "impl_plan"
+    related_modules:
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+    related_interfaces:
+      - "RawSemanticGraph"
+      - "StabilizedGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Graph utilities cover adjacency and node lookup."
+      - "Unit test tests/unit/test_graph_utils.py passes."
+    status: "done"
+
+  - id: "IMPL_003"
+    title: "Define ConstraintConfig defaults"
+    description: "Implement config parsing and defaults in src/onn/core/constraint_config.py and config/constraint_defaults.yaml."
+    origin: "impl_plan"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "ConstraintConfig"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ConstraintConfig loads defaults and overrides."
+      - "Unit test tests/unit/test_constraint_config.py passes."
+    status: "done"
+
+  - id: "IMPL_004"
+    title: "Implement SEGO gauge anchoring baseline"
+    description: "Implement f_enc and f_geo placeholders per 02_onn_math_spec.md Section 2.1 in src/onn/ops/sego_anchor.py."
+    origin: "impl_plan"
+    related_modules:
+      - "sego_gauge_anchor"
+    related_interfaces:
+      - "SensorObservation"
+      - "RawSemanticGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "SEGO returns RawSemanticGraph with nodes and edge_candidates."
+      - "Smoke test tests/smoke/test_sego_one_frame.py passes."
+    status: "done"
+
+  - id: "IMPL_005"
+    title: "Implement LOGOS energy terms (PyTorch)"
+    description: "Implement L_data, L_phys, L_logic per 02_onn_math_spec.md Section 4 in src/onn/ops/logos_solver.py using torch autograd."
+    origin: "impl_plan"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "RawSemanticGraph"
+      - "StabilizedGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Energy terms compute finite values for small graphs."
+      - "Energy computation runs in PyTorch and supports autograd."
+      - "Unit test tests/unit/test_logos_energy.py passes."
+    status: "done"
+
+  - id: "IMPL_006"
+    title: "Implement LOGOS projection-consensus solver (PyTorch)"
+    description: "Implement solver loop with torch.autograd gradients and projection."
+    origin: "impl_plan"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "StabilizedGraph"
+      - "ConstraintConfig"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Solver respects max_iterations and tolerance."
+      - "Gradients are computed via torch.autograd."
+      - "Smoke test tests/smoke/test_logos_solver_basic.py passes."
+    status: "done"
+
+  - id: "IMPL_007"
+    title: "Implement Forman-Ricci curvature module"
+    description: "Align curvature formula with 02_onn_math_spec.md Section 2.3 in src/onn/modules/curvature.py."
+    origin: "impl_plan"
+    related_modules:
+      - "imago_intent_planner"
+    related_interfaces:
+      - "StabilizedGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Curvature computed for edges and nodes."
+      - "Unit test tests/unit/test_curvature.py passes."
+    status: "done"
+
+  - id: "IMPL_008"
+    title: "Implement IMAGO planner"
+    description: "Generate ReasoningTrace using curvature and MissionGoal in src/onn/ops/imago_planner.py."
+    origin: "impl_plan"
+    related_modules:
+      - "imago_intent_planner"
+    related_interfaces:
+      - "StabilizedGraph"
+      - "MissionGoal"
+      - "ReasoningTrace"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ReasoningTrace.valid_until_ns and curvature are populated."
+      - "Smoke test tests/smoke/test_imago_trace_basic.py passes."
+    status: "done"
+
+  - id: "IMPL_009"
+    title: "Implement ORTSF fabric baseline"
+    description: "Implement delay prediction, trace interpolation, and ActuatorCommand output in src/ortsf/fabric/ortsf_fabric.py."
+    origin: "impl_plan"
+    related_modules:
+      - "ortsf_fabric_controller"
+    related_interfaces:
+      - "ReasoningTrace"
+      - "SensorObservation"
+      - "ActuatorCommand"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ActuatorCommand output is finite and mode is valid."
+      - "Smoke test tests/smoke/test_ortsf_fabric_basic.py passes."
+    status: "done"
+
+  - id: "IMPL_010"
+    title: "Implement SensorBridge mock"
+    description: "Provide deterministic SensorObservation generation and time sync in src/hal/sensor_bridge/sensor_bridge.py."
+    origin: "impl_plan"
+    related_modules:
+      - "hal_sensor_bridge"
+    related_interfaces:
+      - "SensorObservation"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "SensorObservation timestamps are monotonic."
+      - "Smoke test tests/smoke/test_sensor_bridge_basic.py passes."
+    status: "done"
+
+  - id: "IMPL_011"
+    title: "Implement ActuatorBridge mock"
+    description: "Clamp and validate ActuatorCommand output in src/hal/actuator_bridge/actuator_bridge.py."
+    origin: "impl_plan"
+    related_modules:
+      - "hal_actuator_bridge"
+    related_interfaces:
+      - "ActuatorCommand"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Outputs are within configured limits."
+      - "Smoke test tests/smoke/test_actuator_bridge_basic.py passes."
+    status: "done"
+
+  - id: "IMPL_012"
+    title: "Implement MissionControl"
+    description: "Publish MissionGoal and provide graph inspection in src/app/mission_control/mission_control.py."
+    origin: "impl_plan"
+    related_modules:
+      - "app_mission_control"
+    related_interfaces:
+      - "MissionGoal"
+      - "StabilizedGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "MissionGoal can be created and emitted."
+      - "Smoke test tests/smoke/test_mission_control_basic.py passes."
+    status: "done"
+
+  - id: "IMPL_013"
+    title: "Create end-to-end mock pipeline test"
+    description: "Implement tests/smoke/test_csa_e2e_pipeline.py to run the CSA pipeline in mock mode."
+    origin: "test_plan"
+    related_modules:
+      - "hal_sensor_bridge"
+      - "sego_gauge_anchor"
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+      - "ortsf_fabric_controller"
+      - "hal_actuator_bridge"
+      - "app_mission_control"
+    related_interfaces:
+      - "sensor_observation_stream"
+      - "raw_graph_stream"
+      - "stabilized_graph_stream"
+      - "reasoning_trace_stream"
+      - "actuator_command_stream"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "E2E test produces at least one ActuatorCommand."
+      - "Test exits with code 0."
+    status: "done"
+
+  - id: "IMPL_014"
+    title: "Add CSA smoke test scaffolding"
+    description: "Create tests/smoke files for each CSA module per spec/21_test_plan.ir.yml."
+    origin: "test_plan"
+    related_modules:
+      - "hal_sensor_bridge"
+      - "hal_actuator_bridge"
+      - "sego_gauge_anchor"
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+      - "ortsf_fabric_controller"
+      - "app_mission_control"
+    related_interfaces:
+      - "sensor_observation_stream"
+      - "raw_graph_stream"
+      - "stabilized_graph_stream"
+      - "reasoning_trace_stream"
+      - "actuator_command_stream"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Smoke test files exist and execute."
+      - "Tests listed in spec/21_test_plan.ir.yml are present."
+    status: "done"
+
+  - id: "TEST_001"
+    title: "Add LOGOS energy unit test"
+    description: "Create tests/unit/test_logos_energy.py to cover LOGOS loss terms per spec/20_impl_plan.ir.yml."
+    origin: "impl_plan"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "RawSemanticGraph"
+      - "StabilizedGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "tests/unit/test_logos_energy.py exists."
+      - "Loss terms return finite scalars for small graphs."
+      - "pytest tests/unit/test_logos_energy.py -q passes."
+    status: "done"
+
+  - id: "CPL_001"
+    title: "Remove discrete class/verb mappings from ONN operators"
+    description: "Replace class_name/verb lookup tables in SEGO/IMAGO with continuous encodings to satisfy spec/01_constraints.md."
+    origin: "impl_plan"
+    related_modules:
+      - "sego_gauge_anchor"
+      - "imago_intent_planner"
+    related_interfaces:
+      - "SemanticNode"
+      - "MissionGoal"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "No class_name or verb lookup tables inside ONN operators."
+      - "Intent tensors derived from continuous encodings."
+    status: "done"
+
+  - id: "CPL_002"
+    title: "Move ORTSF hardcoded gains/limits into config"
+    description: "Eliminate magic numbers in ORTSF controller by moving gains/limits to ORTSFConfig."
+    origin: "impl_plan"
+    related_modules:
+      - "ortsf_fabric_controller"
+    related_interfaces:
+      - "ActuatorCommand"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Control gains/limits defined in ORTSFConfig or external config."
+      - "No hardcoded gains/limits in src/ortsf/fabric/ortsf_fabric.py."
+    status: "done"
+
+  - id: "CPL_003"
+    title: "Gate IMAGO on LOGOS convergence"
+    description: "If LOGOS fails to converge, hold last valid graph or halt; never emit invalid stabilized_graph to IMAGO."
+    origin: "constraints"
+    related_modules:
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+    related_interfaces:
+      - "StabilizedGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "LOGOS exposes convergence status and retains last valid graph."
+      - "IMAGO consumes only graphs marked valid."
+    status: "done"
+
+  - id: "CPL_004"
+    title: "Align LOGOS solver API with spec interfaces"
+    description: "Ensure LOGOS solver accepts constraint config as per spec/01_constraints.md (config-driven)."
+    origin: "constraints"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "ConstraintConfig"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "LOGOS can be configured via ConstraintConfig or an adapter."
+      - "Public solver API matches spec naming or provides compatible wrappers."
+    status: "open"
+
+  - id: "CPL_005"
+    title: "Move SEGO/IMAGO intent constants into config"
+    description: "Refactor hardcoded values (intent projection, blend factors) in SEGO/IMAGO into config classes."
+    origin: "constraints"
+    related_modules:
+      - "sego_gauge_anchor"
+      - "imago_intent_planner"
+    related_interfaces:
+      - "SEGOConfig"
+      - "IMAGOConfig"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Intent encoding constants are configurable or derived from inputs."
+      - "No hard-coded normalization factors in SEGO/IMAGO intent paths."
+    status: "done"
+
+  - id: "CPL_006"
+    title: "Prune isolated nodes per edge-defined existence"
+    description: "Implement 'Existence is defined by edges' constraint by pruning nodes with 0 degree."
+    origin: "constraints"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "StabilizedGraph"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Graphs remove or flag nodes with zero edges after pruning."
+      - "Downstream modules handle pruned nodes cleanly."
+    status: "open"
+
+  - id: "CPL_007"
+    title: "Align ConstraintConfig defaults with spec"
+    description: "Update default values in ConstraintConfig (e.g., max_iterations) to match spec/01_constraints.md."
+    origin: "constraints"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "ConstraintConfig"
+    priority: "LOW"
+    acceptance_criteria:
+      - "ConstraintConfig defaults reflect spec (max_iterations=10) or are removed in favor of config file."
+    status: "done"
+
+  - id: "TEST_002"
+    title: "Fix E2E smoke test under CPL_003 gating"
+    description: "Update tests/smoke/test_csa_e2e_pipeline.py to handle LOGOS non-convergence (use get_last_valid_graph or adjust LOGOS config) so E2E pipeline is stable."
+    origin: "test_plan"
+    related_modules:
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+      - "ortsf_fabric_controller"
+    related_interfaces:
+      - "StabilizedGraph"
+      - "ReasoningTrace"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "pytest tests/smoke/test_csa_e2e_pipeline.py -q passes under default settings."
+      - "Test explicitly handles is_valid=False graphs."
+    status: "done"
+
+  - id: "CPL_008"
+    title: "Align StabilizedGraph schema with spec"
+    description: "Remove is_valid/iterations_used from StabilizedGraph or update interfaces/spec to include them; code must match spec/11_interfaces.ir.yml."
+    origin: "constraints"
+    related_modules:
+      - "logos_consensus_solver"
+      - "imago_intent_planner"
+    related_interfaces:
+      - "StabilizedGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "StabilizedGraph fields match spec/11_interfaces.ir.yml."
+      - "No extra schema fields appear in core data models."
+    status: "done"
+
+  - id: "CPL_009"
+    title: "Align LOGOS physics loss with math spec"
+    description: "Implement L_phys per spec/02_onn_math_spec.md (sphere-collision penalty) instead of cosine similarity heuristic."
+    origin: "constraints"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "RawSemanticGraph"
+      - "StabilizedGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "compute_phys_loss matches ReLU(R_i + R_j - ||p_i - p_j||)."
+      - "Unit test tests/unit/test_logos_energy.py covers L_phys behavior."
+    status: "done"
+
+  - id: "IMPL_015"
+    title: "Implement ONN core graph and cycle basis"
+    description: "Add graph representation and cycle basis construction for edge embeddings."
+    origin: "impl_plan"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "CycleBasis"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Cycle basis matrix C is computed for small graphs."
+      - "Unit tests for graph core and cycles pass."
+    status: "done"
+
+  - id: "IMPL_016"
+    title: "Implement projection operators"
+    description: "Implement hard and relaxed projection P_C for Cx=tau constraints."
+    origin: "impl_plan"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "CycleBasis"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "project_constraints enforces Cx=tau for small cases."
+      - "relaxed_projection supports alpha in (0,1]."
+    status: "done"
+
+  - id: "IMPL_017"
+    title: "Implement ONN edge-embedding losses"
+    description: "Add data/context/ricci/smooth/variance losses for edge embeddings."
+    origin: "impl_plan"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "EdgeEmbeddingState"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Loss terms return finite scalars."
+      - "Unit tests validate loss behavior."
+    status: "done"
+
+  - id: "IMPL_018"
+    title: "Implement Projection–Consensus solver (edge embeddings)"
+    description: "Add K-step solver loop with gradient descent and relaxed projection."
+    origin: "impl_plan"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "ONNSolverConfig"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Solver reduces total loss on synthetic graphs."
+      - "Projection step keeps violations bounded."
+    status: "done"
+
+  - id: "IMPL_019"
+    title: "Implement relation embedding parameterization"
+    description: "Add pair feature extraction and x_obs parameterization for edges."
+    origin: "impl_plan"
+    related_modules:
+      - "onn_relation_encoder"
+    related_interfaces:
+      - "EdgeEmbeddingState"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Pair features computed for edge candidates."
+      - "x_obs embeddings generated with random projection + linear term."
+    status: "done"
+
+  - id: "IMPL_020"
+    title: "Implement ES ask/tell (CMA-ES)"
+    description: "Add CMA-ES trainer for ONN solver hyperparameters."
+    origin: "impl_plan"
+    related_modules:
+      - "es_trainer"
+    related_interfaces:
+      - "ESConfig"
+      - "ESReport"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ask returns candidate parameter sets."
+      - "tell updates mean/covariance and improves fitness trends."
+    status: "done"
+
+  - id: "IMPL_021"
+    title: "Implement ES fitness and schedules"
+    description: "Add episodic fitness evaluation and parameter schedules."
+    origin: "impl_plan"
+    related_modules:
+      - "es_trainer"
+    related_interfaces:
+      - "EvalMetrics"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Fitness aggregates violation/drift/ricci/smooth/latency metrics."
+      - "Schedules apply to eta/K/lambda parameters."
+    status: "done"
+
+  - id: "IMPL_022"
+    title: "Implement evaluation metrics and gates"
+    description: "Add metric computation, gating logic, and reporting utilities."
+    origin: "impl_plan"
+    related_modules:
+      - "eval_gate"
+    related_interfaces:
+      - "EvalMetrics"
+      - "GateReport"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Metrics match definitions for violation/drift/ricci/smooth/latency."
+      - "Gate thresholds yield pass/fail results."
+    status: "done"
+
+  - id: "IMPL_023"
+    title: "Add unit tests for ONN core"
+    description: "Create unit tests for graph/cycles/projection/losses/solver modules."
+    origin: "test_plan"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "CycleBasis"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "All new unit tests pass."
+    status: "open"
+
+  - id: "IMPL_024"
+    title: "Add ES integration tests"
+    description: "Create integration tests for ES loop on synthetic scenarios."
+    origin: "test_plan"
+    related_modules:
+      - "es_trainer"
+      - "eval_gate"
+    related_interfaces:
+      - "EvalMetrics"
+      - "GateReport"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "ES loop runs for multiple generations."
+      - "Metrics and gate reports are recorded."
+    status: "blocked"
+
+  - id: "IMPL_025"
+    title: "Add ES/eval smoke tests"
+    description: "Create smoke tests for eval gates and ES pipeline basics."
+    origin: "test_plan"
+    related_modules:
+      - "es_trainer"
+      - "eval_gate"
+    related_interfaces:
+      - "ESReport"
+      - "GateReport"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Smoke tests execute in < 10s."
+    status: "open"
+
+  - id: "TEST_003"
+    title: "Fix integration test imports for src layout"
+    description: "Make `onn` importable for integration tests (package config or test PYTHONPATH)."
+    origin: "test_plan"
+    related_modules:
+      - "es_trainer"
+      - "eval_gate"
+      - "sego_gauge_anchor"
+    related_interfaces:
+      - "SensorObservation"
+      - "EvalMetrics"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "pytest tests/integration -q collects tests without ModuleNotFoundError."
+      - "Import `onn.core` works from repo root."
+    status: "open"
+
+  - id: "TEST_004"
+    title: "Add unit tests for relation encoder"
+    description: "Create unit tests for relation basis and parameterization modules."
+    origin: "test_plan"
+    related_modules:
+      - "onn_relation_encoder"
+    related_interfaces:
+      - "EdgeEmbeddingState"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "tests/unit/test_relation_basis.py and tests/unit/test_relation_param.py exist and pass."
+    status: "open"
+
+  - id: "TEST_005"
+    title: "Add unit tests for ES trainer"
+    description: "Create unit tests for CMA-ES ask/tell, fitness evaluation, and schedules."
+    origin: "test_plan"
+    related_modules:
+      - "es_trainer"
+    related_interfaces:
+      - "ESConfig"
+      - "ESReport"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "tests/unit/test_es_ask_tell.py, tests/unit/test_es_fitness.py, and tests/unit/test_es_schedule.py exist and pass."
+    status: "open"
+
+  - id: "TEST_006"
+    title: "Add unit tests for eval metrics/gates/reports"
+    description: "Create unit tests for eval metrics, gate evaluation, and report serialization."
+    origin: "test_plan"
+    related_modules:
+      - "eval_gate"
+    related_interfaces:
+      - "EvalMetrics"
+      - "GateReport"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "tests/unit/test_eval_metrics.py, tests/unit/test_eval_gates.py, and tests/unit/test_eval_reports.py exist and pass."
+    status: "open"
+
+  - id: "CPL_010"
+    title: "Implement EdgeEmbeddingState schema in core tensors"
+    description: "Add EdgeEmbeddingState dataclass to src/onn/core/tensors.py per spec/11_interfaces.ir.yml."
+    origin: "constraints"
+    related_modules:
+      - "onn_relation_encoder"
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "EdgeEmbeddingState"
+      - "EdgeKey"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "EdgeEmbeddingState is defined and importable."
+      - "Fields match spec/11_interfaces.ir.yml."
+    status: "open"
+
+  - id: "CPL_011"
+    title: "Align ONNSolverConfig with PCSolverConfig"
+    description: "Provide adapter or rename PCSolverConfig to match ONNSolverConfig in spec/11_interfaces.ir.yml."
+    origin: "constraints"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "ONNSolverConfig"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "Public API exposes ONNSolverConfig-compatible config."
+      - "Spec and code use consistent names and fields."
+    status: "open"
+
+  - id: "CPL_012"
+    title: "Unify EvalMetrics across eval and ES"
+    description: "Use a single EvalMetrics dataclass across src/onn/eval and src/onn/es."
+    origin: "constraints"
+    related_modules:
+      - "eval_gate"
+      - "es_trainer"
+    related_interfaces:
+      - "EvalMetrics"
+      - "GateReport"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "EvalMetrics fields match spec and are used consistently."
+      - "GateReport.metrics uses EvalMetrics, not dicts."
+    status: "open"
+
+  - id: "CPL_013"
+    title: "Resolve ghost modules vs architecture"
+    description: "Decide whether to formalize or remove unplanned modules (edge_stabilizer, csa_pipeline, sego_enhanced, delta, diff_solver, relation_geometry, hybrid_trainer, geometric_integration, relation extras, tlm, simulation)."
+    origin: "constraints"
+    related_modules:
+      - "sego_gauge_anchor"
+      - "onn_relation_encoder"
+      - "es_trainer"
+    related_interfaces:
+      - "RawSemanticGraph"
+      - "EdgeEmbeddingState"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "Each ghost module is either added to spec/10_architecture.ir.yml or removed."
+      - "spec/20_impl_plan.ir.yml updated accordingly."
+    status: "open"
+
+  - id: "CPL_014"
+    title: "Align SEGO bound_tensor with LOGOS L_phys geometry"
+    description: "Populate bound_tensor with explicit position/radius or update L_phys to match the current bound_tensor semantics."
+    origin: "constraints"
+    related_modules:
+      - "sego_gauge_anchor"
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "SemanticNode"
+      - "StabilizedGraph"
+    priority: "HIGH"
+    acceptance_criteria:
+      - "SEGO outputs bound_tensor with position/radius usable by LOGOS L_phys, or L_phys is updated to use available bound_tensor fields."
+      - "LOGOS physical loss is meaningful with SEGO outputs."
+    status: "open"
+
+  - id: "CPL_015"
+    title: "Resolve simulation package location vs spec"
+    description: "Spec expects src/sim/ but code uses src/onn/simulation/. Decide and align spec or move module."
+    origin: "constraints"
+    related_modules: []
+    related_interfaces: []
+    priority: "LOW"
+    acceptance_criteria:
+      - "Simulation code location matches spec (either move code or update spec)."
+    status: "open"
+
+  - id: "CPL_016"
+    title: "Align LOGOS data loss with spec"
+    description: "Update L_data to operate on the bound tensor B_i as defined in spec/02_onn_math_spec.md Section 4.1."
+    origin: "constraints"
+    related_modules:
+      - "logos_consensus_solver"
+    related_interfaces:
+      - "StabilizedGraph"
+    priority: "MEDIUM"
+    acceptance_criteria:
+      - "L_data uses bound_tensor components only (B_i vs B_i,raw)."
+      - "tests/unit/test_logos_energy.py covers B-only data loss behavior."
+    status: "open"

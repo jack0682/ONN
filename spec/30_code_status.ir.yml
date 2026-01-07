@@ -1,0 +1,378 @@
+metadata:
+  system_name: "CSA (Collaborative Sensing Agent)"
+  status_version: "0.1.1"
+  last_scan: "2026-01-04T16:17:52Z"
+  last_updated_by: "Codex_Auditor"
+  based_on_architecture_version: "0.4.0"
+  based_on_impl_plan_version: "0.2.0"
+  based_on_test_plan_version: "0.1.0"
+  notes:
+    - "Audit compares spec/ against src/ reality."
+    - "Test execution attempted; pytest collection failed due to missing `onn` import path."
+    - "Ghost modules and schema mismatches remain a primary divergence from spec."
+
+status_enums:
+  implementation_status:
+    - name: "NOT_STARTED"
+      description: "No relevant code found."
+    - name: "SKELETON"
+      description: "Files/classes exist but contain stubs or placeholder logic."
+    - name: "PARTIAL"
+      description: "Some logic exists but incomplete or missing integration/tests."
+    - name: "COMPLETE"
+      description: "Implemented and likely passes smoke tests."
+  health_status:
+    - name: "GREEN"
+      description: "Verified by tests or strong evidence of correctness."
+    - name: "YELLOW"
+      description: "Untested or partially implemented."
+    - name: "RED"
+      description: "Missing or clearly broken."
+  test_status:
+    - name: "NOT_RUN"
+      description: "Tests not run or not present."
+    - name: "BLOCKED"
+      description: "Cannot run due to missing tests or prerequisites."
+    - name: "FAILED"
+      description: "Test run failed."
+    - name: "PASSED"
+      description: "Test run passed."
+  documentation_status:
+    - name: "NONE"
+      description: "No documentation."
+    - name: "MINIMAL"
+      description: "Docstrings or basic comments only."
+    - name: "ADEQUATE"
+      description: "Sufficient for a new contributor to follow."
+
+global_summary:
+  overall_health: "RED"
+  modules_total: 10
+  modules_complete: 5
+  modules_partial: 5
+  modules_skeleton: 0
+  modules_not_started: 0
+  ghost_code_count: 18
+  missing_plan_files_count: 14
+  tests_run:
+    - command: "pytest -q"
+      status: "FAILED"
+      reason: "Collection failed: ModuleNotFoundError: No module named 'onn' (tests/integration/test_csa_es_integration.py)."
+    - command: "pytest tests/unit -q"
+      status: "NOT_RUN"
+      reason: "Not executed after collection failure; import path unresolved."
+    - command: "pytest tests/smoke -q"
+      status: "NOT_RUN"
+      reason: "Not executed after collection failure; import path unresolved."
+    - command: "pytest tests/integration -q"
+      status: "NOT_RUN"
+      reason: "Not executed after collection failure; import path unresolved."
+  key_risks:
+    - "Test suite fails at collection because `onn` is not importable from repo root; no automated verification is currently possible."
+    - "Core interfaces missing: EdgeEmbeddingState/EdgeKey/ONNSolverConfig are absent from src/onn/core/tensors.py."
+    - "EvalMetrics/GateReport schema mismatch: eval returns dicts, ES defines its own dataclass; violates spec/11_interfaces.ir.yml."
+    - "LOGOS L_phys uses position/radius from bound_tensor, but SEGO does not populate geometric positions/radii; physical loss is effectively meaningless."
+    - "CPL_006 (prune isolated nodes) is implemented in graph_utils but never applied in LOGOS pipeline."
+    - "Ghost modules (delta, diff_solver, edge_stabilizer, csa_pipeline, sego_enhanced, relation extras, tlm, simulation) diverge from spec/10_architecture.ir.yml."
+  recommendations:
+    - "Add EdgeEmbeddingState/EdgeKey/ONNSolverConfig to core tensors and provide adapters to align LOGOS/PC solver APIs."
+    - "Unify EvalMetrics across eval and ES, and update GateReport to use the shared schema."
+    - "Either populate bound_tensor with position/radius in SEGO or change L_phys to match current bound_tensor semantics."
+    - "Enforce isolated-node pruning in LOGOS or explicitly document/waive CPL_006."
+    - "Decide whether ghost modules are promoted into the architecture or removed; update specs accordingly."
+
+inconsistencies:
+  - "spec/11_interfaces.ir.yml defines EdgeEmbeddingState/EdgeKey, but no matching dataclasses exist in src/onn/core/tensors.py."
+  - "spec/11_interfaces.ir.yml defines ONNSolverConfig; code uses PCSolverConfig in src/onn/core/solver.py with no adapter."
+  - "spec/11_interfaces.ir.yml defines EvalMetrics; src/onn/eval/metrics.py returns dicts while src/onn/es/fitness.py defines EvalMetrics dataclass."
+  - "spec/10_architecture.ir.yml does not include EdgeStabilizer or CSAPipeline, yet src/onn/ops/csa_pipeline.py depends on them."
+  - "spec/10_architecture.ir.yml omits delta/diff_solver/relation_geometry/hybrid_trainer/geometric_integration modules present under src/onn/."
+  - "spec/00_high_level_plan.md expects src/sim/, but code places simulation under src/onn/simulation/."
+
+modules:
+  - module_id: "hal_sensor_bridge"
+    layer: "layer_hal"
+    status: "COMPLETE"
+    health: "YELLOW"
+    completeness_pct: 95
+    compliance: "OK"
+    documentation: "MINIMAL"
+    notes:
+      - "Mock acquisition implemented in src/hal/sensor_bridge/sensor_bridge.py."
+      - "Hardware acquisition path is stubbed (NotImplemented) but mock mode satisfies V0."
+      - "Smoke test tests/smoke/test_sensor_bridge_basic.py exists but was not run."
+
+  - module_id: "hal_actuator_bridge"
+    layer: "layer_hal"
+    status: "COMPLETE"
+    health: "YELLOW"
+    completeness_pct: 95
+    compliance: "OK"
+    documentation: "MINIMAL"
+    notes:
+      - "Command validation/clamping implemented in src/hal/actuator_bridge/actuator_bridge.py."
+      - "Hardware send path is stubbed (NotImplemented) but mock mode satisfies V0."
+      - "Smoke test tests/smoke/test_actuator_bridge_basic.py exists but was not run."
+
+  - module_id: "sego_gauge_anchor"
+    layer: "layer_perception"
+    status: "PARTIAL"
+    health: "YELLOW"
+    completeness_pct: 75
+    compliance: "OK"
+    documentation: "MINIMAL"
+    notes:
+      - "Gauge anchoring implemented in src/onn/ops/sego_anchor.py with SimpleFeatureEncoder."
+      - "Relation embeddings are heuristic; TODO indicates no learned encoder."
+      - "Bound tensor encodes depth statistics, not explicit position/radius expected by LOGOS L_phys."
+      - "Enhanced SEGO exists in src/onn/ops/sego_enhanced.py but is not referenced by spec."
+
+  - module_id: "onn_relation_encoder"
+    layer: "layer_perception"
+    status: "PARTIAL"
+    health: "RED"
+    completeness_pct: 65
+    compliance: "MISMATCH"
+    documentation: "MINIMAL"
+    notes:
+      - "Relation encoder implemented in src/onn/relation/basis.py and src/onn/relation/param.py."
+      - "EdgeEmbeddingState/EdgeKey schema is not implemented in core tensors."
+      - "Not wired into SEGO; used via ghost EdgeStabilizer in src/onn/ops/edge_stabilizer.py."
+      - "Additional relation modules (contrastive/predictive/SE3/four-axis) are not in the impl plan."
+
+  - module_id: "logos_consensus_solver"
+    layer: "layer_cognition"
+    status: "PARTIAL"
+    health: "RED"
+    completeness_pct: 85
+    compliance: "MISMATCH"
+    documentation: "MINIMAL"
+    notes:
+      - "PyTorch autograd solver and loss terms implemented in src/onn/ops/logos_solver.py."
+      - "Uses LOGOSConfig instead of ConstraintConfig; no adapter."
+      - "Does not apply prune_isolated_nodes (CPL_006) in the solve path."
+      - "LOGOS L_phys expects position/radius in bound_tensor; SEGO does not populate them."
+
+  - module_id: "imago_intent_planner"
+    layer: "layer_cognition"
+    status: "COMPLETE"
+    health: "YELLOW"
+    completeness_pct: 95
+    compliance: "OK"
+    documentation: "MINIMAL"
+    notes:
+      - "Planner generates ReasoningTrace and uses curvature utilities."
+      - "Smoke test tests/smoke/test_imago_trace_basic.py exists but was not run."
+
+  - module_id: "ortsf_fabric_controller"
+    layer: "layer_control"
+    status: "COMPLETE"
+    health: "YELLOW"
+    completeness_pct: 95
+    compliance: "OK"
+    documentation: "MINIMAL"
+    notes:
+      - "Delay prediction, trace interpolation, and command generation implemented."
+      - "Smoke test tests/smoke/test_ortsf_fabric_basic.py exists but was not run."
+
+  - module_id: "app_mission_control"
+    layer: "layer_app"
+    status: "COMPLETE"
+    health: "YELLOW"
+    completeness_pct: 100
+    compliance: "OK"
+    documentation: "MINIMAL"
+    notes:
+      - "Mission goal publishing and graph monitoring implemented in src/app/mission_control/mission_control.py."
+      - "Smoke test tests/smoke/test_mission_control_basic.py exists but was not run."
+
+  - module_id: "es_trainer"
+    layer: "layer_app"
+    status: "PARTIAL"
+    health: "RED"
+    completeness_pct: 75
+    compliance: "MISMATCH"
+    documentation: "MINIMAL"
+    notes:
+      - "CMA-ES implemented in src/onn/es/ask_tell.py and used by CSAWithES in src/onn/ops/csa_pipeline.py (ghost module)."
+      - "Additional ES modules (src/onn/es/hybrid_trainer.py, src/onn/es/geometric_integration.py) are unplanned."
+      - "EvalMetrics dataclass defined in src/onn/es/fitness.py conflicts with eval_gate dict schema."
+      - "Planned ES unit/smoke tests are missing."
+
+  - module_id: "eval_gate"
+    layer: "layer_app"
+    status: "PARTIAL"
+    health: "RED"
+    completeness_pct: 70
+    compliance: "MISMATCH"
+    documentation: "MINIMAL"
+    notes:
+      - "Metrics/gates/reports implemented in src/onn/eval/*.py."
+      - "Uses dict metrics instead of EvalMetrics dataclass; no adapter."
+      - "Smoke/unit tests for eval gate are missing."
+
+shared_components:
+  - id: "onn_core_tensors"
+    path: "src/onn/core/tensors.py"
+    status: "PARTIAL"
+    health: "RED"
+    notes:
+      - "Unit tests did not run; pytest collection failed due to missing `onn` import path."
+      - "Missing EdgeEmbeddingState/EdgeKey/ONNSolverConfig from spec/11_interfaces.ir.yml."
+
+  - id: "onn_graph_utils"
+    path: "src/onn/core/graph_utils.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Graph helpers implemented; unit test tests/unit/test_graph_utils.py exists but was not run."
+
+  - id: "onn_constraint_config"
+    path: "src/onn/core/constraint_config.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Config loader and defaults implemented; unit test tests/unit/test_constraint_config.py exists but was not run."
+
+  - id: "onn_curvature_module"
+    path: "src/onn/modules/curvature.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Forman-Ricci curvature utilities implemented; unit test tests/unit/test_curvature.py exists but was not run."
+
+  - id: "onn_edge_graph"
+    path: "src/onn/core/graph.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "EdgeGraph implemented; unit test tests/unit/test_graph_core.py exists but was not run."
+
+  - id: "onn_cycles"
+    path: "src/onn/core/cycles.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Cycle basis construction implemented; unit test tests/unit/test_cycles.py exists but was not run."
+
+  - id: "onn_projection"
+    path: "src/onn/core/projection.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Hard/relaxed projection implemented; planned unit tests are missing."
+
+  - id: "onn_losses"
+    path: "src/onn/core/losses.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "ONN-ES loss terms implemented; planned unit tests are missing."
+
+  - id: "onn_pc_solver"
+    path: "src/onn/core/solver.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Projection-Consensus solver implemented; planned unit tests are missing."
+
+  - id: "onn_relation_basis"
+    path: "src/onn/relation/basis.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Pair feature extraction implemented; planned unit tests are missing."
+
+  - id: "onn_relation_param"
+    path: "src/onn/relation/param.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Random projection + W_lin encoder implemented; planned unit tests are missing."
+
+  - id: "onn_es_ask_tell"
+    path: "src/onn/es/ask_tell.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "CMA-ES ask/tell implemented; planned unit tests are missing."
+
+  - id: "onn_es_fitness"
+    path: "src/onn/es/fitness.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Fitness evaluation implemented; planned unit tests are missing."
+
+  - id: "onn_es_schedule"
+    path: "src/onn/es/schedule.py"
+    status: "COMPLETE"
+    health: "YELLOW"
+    notes:
+      - "Schedule utilities implemented; planned unit tests are missing."
+
+  - id: "onn_eval_metrics"
+    path: "src/onn/eval/metrics.py"
+    status: "PARTIAL"
+    health: "RED"
+    notes:
+      - "Metric computation implemented; returns dicts instead of EvalMetrics dataclass."
+      - "Planned unit tests are missing."
+
+  - id: "onn_eval_gates"
+    path: "src/onn/eval/gates.py"
+    status: "PARTIAL"
+    health: "RED"
+    notes:
+      - "Gate evaluation implemented; planned unit tests are missing."
+
+  - id: "onn_eval_reports"
+    path: "src/onn/eval/reports.py"
+    status: "PARTIAL"
+    health: "RED"
+    notes:
+      - "Report serialization implemented; planned unit tests are missing."
+
+smoke_workflows:
+  - workflow_id: "WF_SMK_001"
+    status: "NOT_RUN"
+    reason: "Not executed; pytest collection failed due to missing `onn` import path."
+
+missing_plan_files:
+  - "tests/unit/test_projection.py"
+  - "tests/unit/test_losses.py"
+  - "tests/unit/test_solver_pc.py"
+  - "tests/unit/test_relation_basis.py"
+  - "tests/unit/test_relation_param.py"
+  - "tests/unit/test_es_ask_tell.py"
+  - "tests/unit/test_es_fitness.py"
+  - "tests/unit/test_es_schedule.py"
+  - "tests/unit/test_eval_metrics.py"
+  - "tests/unit/test_eval_gates.py"
+  - "tests/unit/test_eval_reports.py"
+  - "tests/integration/test_es_loop_synthetic.py"
+  - "tests/smoke/test_eval_gates_basic.py"
+  - "tests/smoke/test_es_pipeline_basic.py"
+
+ghost_code_files:
+  - "src/__init__.py"
+  - "src/onn/core/diff_solver.py"
+  - "src/onn/core/relation_geometry.py"
+  - "src/onn/es/geometric_integration.py"
+  - "src/onn/es/hybrid_trainer.py"
+  - "src/onn/modules/delta.py"
+  - "src/onn/simulation/__init__.py"
+  - "src/onn/simulation/pybullet_env.py"
+  - "src/onn/ops/sego_enhanced.py"
+  - "src/onn/ops/edge_stabilizer.py"
+  - "src/onn/ops/csa_pipeline.py"
+  - "src/onn/relation/contrastive_relation.py"
+  - "src/onn/relation/se3_encoder.py"
+  - "src/onn/relation/predictive_relation.py"
+  - "src/onn/relation/four_axis_relation.py"
+  - "src/onn/relation/topological_regularizer.py"
+  - "src/onn/tlm/__init__.py"
+  - "src/onn/tlm/model.py"
+
+notes:
+  - "pytest -q failed during collection due to ModuleNotFoundError: No module named 'onn'."

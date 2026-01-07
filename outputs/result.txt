@@ -1,0 +1,1264 @@
+((.venv) ) ojaehong@ojaehong-ui-MacBookAir ONN_folder % PYTHONPATH=src pytest -q 
+........FFFFF........................................................... [ 16%]
+...........FF..........................................................F [ 32%]
+........................................................................ [ 48%]
+........................................................................ [ 64%]
+........................................................................ [ 80%]
+................FF...................................................... [ 97%]
+.............                                                            [100%]
+=================================== FAILURES ===================================
+___________________ TestCSAWithES.test_candidate_evaluation ____________________
+
+self = <test_csa_es_integration.TestCSAWithES object at 0x11628ae40>
+
+    def test_candidate_evaluation(self):
+        """Should evaluate candidates on episodes."""
+        csa_es = create_csa_with_es(population_size=4, seed=42)
+    
+        # Create episode
+        episode = create_synthetic_episode(num_steps=3, num_nodes=3, seed=42)
+    
+        # Get a candidate
+        candidates = csa_es.trainer.ask()
+        candidate = candidates[0]
+    
+        # Evaluate
+>       fitness = csa_es.evaluate_candidate(candidate, [episode])
+
+tests/integration/test_csa_es_integration.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x116593d40>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.3578125 , 0....)), logos_converged=False, logos_iterations=10, logos_energy=49.729740142822266, edge_violation=2.0144476364780672e-14)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=49.729740
+_______________________ TestCSAWithES.test_training_step _______________________
+
+self = <test_csa_es_integration.TestCSAWithES object at 0x11628af60>
+
+    def test_training_step(self):
+        """Training step should update ES and fitness."""
+        csa_es = create_csa_with_es(population_size=4, seed=42)
+    
+        episode = create_synthetic_episode(num_steps=3, num_nodes=3, seed=42)
+    
+        # Run one training step
+>       metrics = csa_es.train_step([episode])
+
+tests/integration/test_csa_es_integration.py:245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:370: in train_step
+    fitness = self.evaluate_candidate(candidate, episodes)
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x1165d5fa0>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.3578125 , 0....)), logos_converged=False, logos_iterations=10, logos_energy=49.729740142822266, edge_violation=2.0144476364780672e-14)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=49.729740
+_________________ TestCSAWithES.test_multi_generation_training _________________
+
+self = <test_csa_es_integration.TestCSAWithES object at 0x11628b080>
+
+    def test_multi_generation_training(self):
+        """Should train for multiple generations."""
+        csa_es = create_csa_with_es(population_size=4, seed=42)
+    
+        episode = create_synthetic_episode(num_steps=3, num_nodes=3, seed=42)
+    
+        # Train for 3 generations
+>       final_report = csa_es.train([episode], num_generations=3)
+
+tests/integration/test_csa_es_integration.py:259: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:411: in train
+    metrics = self.train_step(episodes)
+src/onn/ops/csa_pipeline.py:370: in train_step
+    fitness = self.evaluate_candidate(candidate, episodes)
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x1165d71d0>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.3578125 , 0....)), logos_converged=False, logos_iterations=10, logos_energy=49.729740142822266, edge_violation=2.0144476364780672e-14)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=49.729740
+________________ TestCSAWithES.test_w_lin_optimization_improves ________________
+
+self = <test_csa_es_integration.TestCSAWithES object at 0x11628b1a0>
+
+    def test_w_lin_optimization_improves(self):
+        """W_lin optimization should improve or maintain fitness."""
+        csa_es = create_csa_with_es(population_size=8, seed=42)
+    
+        episode = create_synthetic_episode(num_steps=5, num_nodes=4, seed=42)
+    
+        # Train for several generations
+>       csa_es.train([episode], num_generations=5)
+
+tests/integration/test_csa_es_integration.py:272: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:411: in train
+    metrics = self.train_step(episodes)
+src/onn/ops/csa_pipeline.py:370: in train_step
+    fitness = self.evaluate_candidate(candidate, episodes)
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x1165c2780>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.3578125 , 0....])), logos_converged=False, logos_iterations=10, logos_energy=72.43234252929688, edge_violation=3.7377045902786676e-13)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=72.432343
+________________ TestEndToEndIntegration.test_full_es_csa_loop _________________
+
+self = <test_csa_es_integration.TestEndToEndIntegration object at 0x11628b2c0>
+
+    def test_full_es_csa_loop(self):
+        """Full ES → W_lin → CSA → Fitness → ES loop."""
+        # 1. Create CSA with ES
+        csa_es = create_csa_with_es(population_size=4, seed=42)
+    
+        # 2. Generate training data
+        episodes = [
+            create_synthetic_episode(num_steps=3, num_nodes=3, seed=i)
+            for i in range(2)
+        ]
+    
+        # 3. Train
+        fitness_log = []
+        def callback(metrics):
+            fitness_log.append(metrics["best_fitness"])
+    
+>       csa_es.train(episodes, num_generations=3, callback=callback)
+
+tests/integration/test_csa_es_integration.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:411: in train
+    metrics = self.train_step(episodes)
+src/onn/ops/csa_pipeline.py:370: in train_step
+    fitness = self.evaluate_candidate(candidate, episodes)
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x1165eb350>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.2359375 , 0....0]])), logos_converged=False, logos_iterations=10, logos_energy=35.3563346862793, edge_violation=4.275746423587634e-14)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=35.356335
+_________________ TestONNESGateLoop.test_evaluation_gates_work _________________
+
+self = <test_onn_es_gate_loop.TestONNESGateLoop object at 0x1162f9df0>
+
+    def test_evaluation_gates_work(self):
+        """Evaluation gates should correctly pass/fail based on metrics."""
+        # Metrics that should pass
+        good_metrics = {
+            "violation_mean": 0.01,
+            "violation_max": 0.05,
+            "drift": 0.3,
+            "collapse_score": 0.1,
+            "latency_mean": 2.0,
+            "ricci_energy": 10.0,
+        }
+    
+        config = GateConfig()
+>       report = evaluate_gates(good_metrics, config)
+
+tests/integration/test_onn_es_gate_loop.py:99: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+metrics = {'collapse_score': 0.1, 'drift': 0.3, 'latency_mean': 2.0, 'ricci_energy': 10.0, ...}
+config = GateConfig(violation_max=0.1, violation_mean=0.05, drift_max=1.0, collapse_min=0.01, latency_max=5.0, contradiction_max=0.05, ricci_max=100.0)
+
+    def evaluate_gates(
+        metrics: EvalMetrics,
+        config: Optional[GateConfig] = None,
+    ) -> GateReport:
+        """Check all gates and return pass/fail with details."""
+        if config is None:
+            config = GateConfig()
+    
+        results: List[GateResult] = []
+        failed_gates: List[str] = []
+    
+        def check(gate_id, value, op, threshold, desc):
+            passed = (op == "<=" and value <= threshold) or (
+                op == ">=" and value >= threshold
+            )
+            results.append(GateResult(gate_id, passed, value, threshold, desc))
+            if not passed:
+                failed_gates.append(gate_id)
+    
+        check(
+            "feasibility_mean",
+>           metrics.violation_mean,
+            "<=",
+            config.violation_mean,
+            f"Mean violation ≤ {config.violation_mean}",
+        )
+E       AttributeError: 'dict' object has no attribute 'violation_mean'
+
+src/onn/eval/gates.py:48: AttributeError
+___________________ TestONNESGateLoop.test_full_onn_es_loop ____________________
+
+self = <test_onn_es_gate_loop.TestONNESGateLoop object at 0x1162fb950>
+
+    def test_full_onn_es_loop(self):
+        """Full ONN-ES loop: solver → metrics → gates."""
+        # Setup
+        edges = [(0, 1), (1, 2), (2, 0), (0, 2)]  # Triangle + chord = 2 cycles
+        graph = EdgeGraph.from_edge_list(edges)
+    
+        # Solver
+        solver_config = PCSolverConfig(steps=10, step_size=0.05)
+        solver = ProjectionConsensusSolver(solver_config)
+    
+        # Create synthetic episode
+        episode = []
+        for t in range(5):
+            x_obs = torch.randn(4, 32) * 0.1  # Small random observations
+            episode.append(EpisodeStep(x_obs=x_obs, edge_graph=graph, is_event=(t==2)))
+    
+        # Run episode
+        fitness_config = FitnessConfig()
+        metrics = evaluate_episode(solver, episode, fitness_config)
+    
+        # Check metrics are valid
+        assert metrics.violation_mean >= 0
+        assert metrics.drift_mean >= 0
+        assert metrics.collapse_score >= 0
+    
+        # Check gates
+        metrics_dict = {
+            "violation_mean": metrics.violation_mean,
+            "violation_max": metrics.violation_max,
+            "drift_mean": metrics.drift_mean,
+            "collapse_score": metrics.collapse_score,
+            "latency_mean": metrics.latency_mean,
+            "ricci_energy": metrics.ricci_energy,
+        }
+    
+        gate_config = GateConfig()
+>       report = evaluate_gates(metrics_dict, gate_config)
+
+tests/integration/test_onn_es_gate_loop.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+metrics = {'collapse_score': 0.004643755918368697, 'drift_mean': 0.8142436981201172, 'latency_mean': 1.0, 'ricci_energy': 10.0, ...}
+config = GateConfig(violation_max=0.1, violation_mean=0.05, drift_max=1.0, collapse_min=0.01, latency_max=5.0, contradiction_max=0.05, ricci_max=100.0)
+
+    def evaluate_gates(
+        metrics: EvalMetrics,
+        config: Optional[GateConfig] = None,
+    ) -> GateReport:
+        """Check all gates and return pass/fail with details."""
+        if config is None:
+            config = GateConfig()
+    
+        results: List[GateResult] = []
+        failed_gates: List[str] = []
+    
+        def check(gate_id, value, op, threshold, desc):
+            passed = (op == "<=" and value <= threshold) or (
+                op == ">=" and value >= threshold
+            )
+            results.append(GateResult(gate_id, passed, value, threshold, desc))
+            if not passed:
+                failed_gates.append(gate_id)
+    
+        check(
+            "feasibility_mean",
+>           metrics.violation_mean,
+            "<=",
+            config.violation_mean,
+            f"Mean violation ≤ {config.violation_mean}",
+        )
+E       AttributeError: 'dict' object has no attribute 'violation_mean'
+
+src/onn/eval/gates.py:48: AttributeError
+____________________________ test_ortsf_functional _____________________________
+
+    def test_ortsf_functional():
+        # Setup
+        input_dim = 64
+        predictor = DeepDeltaPredictor(input_dim=input_dim)
+        ortsf = ORTSFOperator(predictor=predictor, delay_ms=50.0)
+    
+        # Run a few steps
+        for t in range(5):
+            current_trace = torch.randn(input_dim)
+>           cmd = ortsf.transform(current_trace)
+
+tests/smoke/test_ortsf_functional.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/ortsf.py:143: in transform
+    u_cmd = self.control_synthesis(r_comp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.ortsf.ORTSFOperator object at 0x12fb979e0>
+compensated_trace = tensor([ 9.5759e-01,  3.1694e-01,  5.2748e-01, -9.6221e-01, -1.9241e+00,
+        -6.1316e-01, -4.7130e-02, -1.7172e-01...5e+00, -2.3319e+00,  7.1379e-01, -9.3437e-01, -5.3179e-02,
+        -6.1115e-01, -2.2245e-01,  7.3423e-01, -5.8812e-01])
+
+    def control_synthesis(self, compensated_trace: torch.Tensor) -> ActuatorCommand:
+        """
+        T_control: Map semantic trace to actuator commands using PD control.
+        Assumes the trace represents a target state on the manifold.
+        """
+        # Target state extracted from trace (e.g., first 7 dims)
+        target = compensated_trace[:7].cpu().numpy()
+    
+        # Simple PD Control: u = Kp*e + Kd*de/dt
+        # For MVP, we assume current state is 0 for error calculation
+        current_state = np.zeros_like(target)
+        error = target - current_state
+    
+        delta_error = error
+        if self.last_predicted_error is not None:
+            delta_error = error - self.last_predicted_error.cpu().numpy()[:7]
+    
+        self.last_predicted_error = compensated_trace.detach()
+    
+        u = self.kp * error + self.kd * delta_error
+    
+>       return ActuatorCommand(
+            joint_targets=u,
+            mode=1,  # Active control mode
+        )
+E       TypeError: ActuatorCommand.__init__() got an unexpected keyword argument 'joint_targets'
+
+src/onn/ops/ortsf.py:134: TypeError
+______________________ test_multi_hypothesis_convergence _______________________
+
+    def test_multi_hypothesis_convergence():
+        """
+        Test that multi-hypothesis solving selects a stable interpretation.
+        """
+        config = LOGOSConfig(max_iterations=10, learning_rate=0.01)
+        solver = LOGOSSolver(config)
+    
+        episode = generate_synthetic_episode(num_steps=1)
+>       raw_graph = episode[0].graph
+E       AttributeError: 'EpisodeStep' object has no attribute 'graph'
+
+tests/unit/test_multi_hypothesis.py:16: AttributeError
+____________ test_philosophical_recovery_from_wrong_interpretation _____________
+
+    def test_philosophical_recovery_from_wrong_interpretation():
+        """
+        Final Philosophical Proof:
+        Maintain 4 hypotheses, where 2 are intentionally corrupted with high noise (wrong interpretation).
+        Verify that the solver recovers the true existence by converging to the low-residual manifold.
+        """
+        config = LOGOSConfig(max_iterations=30, learning_rate=0.01)
+        solver = LOGOSSolver(config)
+    
+        episode = generate_synthetic_episode(num_steps=1)
+>       raw_graph = episode[0].graph
+E       AttributeError: 'EpisodeStep' object has no attribute 'graph'
+
+tests/unit/test_philosophical_recovery.py:18: AttributeError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py:451
+  /Users/ojaehong/ONN_folder/.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py:451: PytestCacheWarning: cache could not write path /Users/ojaehong/ONN_folder/.pytest_cache/v/cache/nodeids: [Errno 13] Permission denied: '/Users/ojaehong/ONN_folder/.pytest_cache/v/cache/nodeids'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py:405
+  /Users/ojaehong/ONN_folder/.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py:405: PytestCacheWarning: cache could not write path /Users/ojaehong/ONN_folder/.pytest_cache/v/cache/lastfailed: [Errno 13] Permission denied: '/Users/ojaehong/ONN_folder/.pytest_cache/v/cache/lastfailed'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+.venv/lib/python3.12/site-packages/_pytest/stepwise.py:56
+  /Users/ojaehong/ONN_folder/.venv/lib/python3.12/site-packages/_pytest/stepwise.py:56: PytestCacheWarning: cache could not write path /Users/ojaehong/ONN_folder/.pytest_cache/v/cache/stepwise: [Errno 13] Permission denied: '/Users/ojaehong/ONN_folder/.pytest_cache/v/cache/stepwise'
+    session.config.cache.set(STEPWISE_CACHE_DIR, [])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_csa_es_integration.py::TestCSAWithES::test_candidate_evaluation - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_csa_es_integration.py::TestCSAWithES::test_training_step - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_csa_es_integration.py::TestCSAWithES::test_multi_generation_training - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_csa_es_integration.py::TestCSAWithES::test_w_lin_optimization_improves - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_csa_es_integration.py::TestEndToEndIntegration::test_full_es_csa_loop - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_onn_es_gate_loop.py::TestONNESGateLoop::test_evaluation_gates_work - AttributeError: 'dict' object has no attribute 'violation_mean'
+FAILED tests/integration/test_onn_es_gate_loop.py::TestONNESGateLoop::test_full_onn_es_loop - AttributeError: 'dict' object has no attribute 'violation_mean'
+FAILED tests/smoke/test_ortsf_functional.py::test_ortsf_functional - TypeError: ActuatorCommand.__init__() got an unexpected keyword argument 'j...
+FAILED tests/unit/test_multi_hypothesis.py::test_multi_hypothesis_convergence - AttributeError: 'EpisodeStep' object has no attribute 'graph'
+FAILED tests/unit/test_philosophical_recovery.py::test_philosophical_recovery_from_wrong_interpretation - AttributeError: 'EpisodeStep' object has no attribute 'graph'
+10 failed, 435 passed, 3 warnings in 23.11s
+((.venv) ) ojaehong@ojaehong-ui-MacBookAir ONN_folder % PYTHONPATH=src pytest --maxfail=1 -x
+============================= test session starts ==============================
+platform darwin -- Python 3.12.12, pytest-7.4.4, pluggy-1.6.0
+rootdir: /Users/ojaehong/ONN_folder
+collected 445 items                                                            
+
+tests/integration/test_csa_es_integration.py ........F
+
+=================================== FAILURES ===================================
+___________________ TestCSAWithES.test_candidate_evaluation ____________________
+
+self = <test_csa_es_integration.TestCSAWithES object at 0x114b4a030>
+
+    def test_candidate_evaluation(self):
+        """Should evaluate candidates on episodes."""
+        csa_es = create_csa_with_es(population_size=4, seed=42)
+    
+        # Create episode
+        episode = create_synthetic_episode(num_steps=3, num_nodes=3, seed=42)
+    
+        # Get a candidate
+        candidates = csa_es.trainer.ask()
+        candidate = candidates[0]
+    
+        # Evaluate
+>       fitness = csa_es.evaluate_candidate(candidate, [episode])
+
+tests/integration/test_csa_es_integration.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x114e63920>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.3578125 , 0....)), logos_converged=False, logos_iterations=10, logos_energy=49.729740142822266, edge_violation=2.0144476364780672e-14)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=49.729740
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py:451
+  /Users/ojaehong/ONN_folder/.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py:451: PytestCacheWarning: cache could not write path /Users/ojaehong/ONN_folder/.pytest_cache/v/cache/nodeids: [Errno 13] Permission denied: '/Users/ojaehong/ONN_folder/.pytest_cache/v/cache/nodeids'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py:405
+  /Users/ojaehong/ONN_folder/.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py:405: PytestCacheWarning: cache could not write path /Users/ojaehong/ONN_folder/.pytest_cache/v/cache/lastfailed: [Errno 13] Permission denied: '/Users/ojaehong/ONN_folder/.pytest_cache/v/cache/lastfailed'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+.venv/lib/python3.12/site-packages/_pytest/stepwise.py:56
+  /Users/ojaehong/ONN_folder/.venv/lib/python3.12/site-packages/_pytest/stepwise.py:56: PytestCacheWarning: cache could not write path /Users/ojaehong/ONN_folder/.pytest_cache/v/cache/stepwise: [Errno 13] Permission denied: '/Users/ojaehong/ONN_folder/.pytest_cache/v/cache/stepwise'
+    session.config.cache.set(STEPWISE_CACHE_DIR, [])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_csa_es_integration.py::TestCSAWithES::test_candidate_evaluation - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+=================== 1 failed, 8 passed, 3 warnings in 1.60s ====================
+((.venv) ) ojaehong@ojaehong-ui-MacBookAir ONN_folder % PYTHONPATH=src pytest -q --disable-warnings --durations=10
+........FFFFF........................................................... [ 16%]
+...........FF..........................................................F [ 32%]
+........................................................................ [ 48%]
+........................................................................ [ 64%]
+........................................................................ [ 80%]
+................FF...................................................... [ 97%]
+.............                                                            [100%]
+=================================== FAILURES ===================================
+___________________ TestCSAWithES.test_candidate_evaluation ____________________
+
+self = <test_csa_es_integration.TestCSAWithES object at 0x1126a28a0>
+
+    def test_candidate_evaluation(self):
+        """Should evaluate candidates on episodes."""
+        csa_es = create_csa_with_es(population_size=4, seed=42)
+    
+        # Create episode
+        episode = create_synthetic_episode(num_steps=3, num_nodes=3, seed=42)
+    
+        # Get a candidate
+        candidates = csa_es.trainer.ask()
+        candidate = candidates[0]
+    
+        # Evaluate
+>       fitness = csa_es.evaluate_candidate(candidate, [episode])
+
+tests/integration/test_csa_es_integration.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x1129a7e90>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.3578125 , 0....)), logos_converged=False, logos_iterations=10, logos_energy=49.729740142822266, edge_violation=2.0144476364780672e-14)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=49.729740
+_______________________ TestCSAWithES.test_training_step _______________________
+
+self = <test_csa_es_integration.TestCSAWithES object at 0x1126a2d50>
+
+    def test_training_step(self):
+        """Training step should update ES and fitness."""
+        csa_es = create_csa_with_es(population_size=4, seed=42)
+    
+        episode = create_synthetic_episode(num_steps=3, num_nodes=3, seed=42)
+    
+        # Run one training step
+>       metrics = csa_es.train_step([episode])
+
+tests/integration/test_csa_es_integration.py:245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:370: in train_step
+    fitness = self.evaluate_candidate(candidate, episodes)
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x1129e3c80>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.3578125 , 0....)), logos_converged=False, logos_iterations=10, logos_energy=49.729740142822266, edge_violation=2.0144476364780672e-14)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=49.729740
+_________________ TestCSAWithES.test_multi_generation_training _________________
+
+self = <test_csa_es_integration.TestCSAWithES object at 0x1126a2e70>
+
+    def test_multi_generation_training(self):
+        """Should train for multiple generations."""
+        csa_es = create_csa_with_es(population_size=4, seed=42)
+    
+        episode = create_synthetic_episode(num_steps=3, num_nodes=3, seed=42)
+    
+        # Train for 3 generations
+>       final_report = csa_es.train([episode], num_generations=3)
+
+tests/integration/test_csa_es_integration.py:259: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:411: in train
+    metrics = self.train_step(episodes)
+src/onn/ops/csa_pipeline.py:370: in train_step
+    fitness = self.evaluate_candidate(candidate, episodes)
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x1129d1670>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.3578125 , 0....)), logos_converged=False, logos_iterations=10, logos_energy=49.729740142822266, edge_violation=2.0144476364780672e-14)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=49.729740
+________________ TestCSAWithES.test_w_lin_optimization_improves ________________
+
+self = <test_csa_es_integration.TestCSAWithES object at 0x1126a2f90>
+
+    def test_w_lin_optimization_improves(self):
+        """W_lin optimization should improve or maintain fitness."""
+        csa_es = create_csa_with_es(population_size=8, seed=42)
+    
+        episode = create_synthetic_episode(num_steps=5, num_nodes=4, seed=42)
+    
+        # Train for several generations
+>       csa_es.train([episode], num_generations=5)
+
+tests/integration/test_csa_es_integration.py:272: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:411: in train
+    metrics = self.train_step(episodes)
+src/onn/ops/csa_pipeline.py:370: in train_step
+    fitness = self.evaluate_candidate(candidate, episodes)
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x1129e3a10>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.3578125 , 0....])), logos_converged=False, logos_iterations=10, logos_energy=72.43234252929688, edge_violation=3.7377045902786676e-13)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=72.432343
+________________ TestEndToEndIntegration.test_full_es_csa_loop _________________
+
+self = <test_csa_es_integration.TestEndToEndIntegration object at 0x1126a30e0>
+
+    def test_full_es_csa_loop(self):
+        """Full ES → W_lin → CSA → Fitness → ES loop."""
+        # 1. Create CSA with ES
+        csa_es = create_csa_with_es(population_size=4, seed=42)
+    
+        # 2. Generate training data
+        episodes = [
+            create_synthetic_episode(num_steps=3, num_nodes=3, seed=i)
+            for i in range(2)
+        ]
+    
+        # 3. Train
+        fitness_log = []
+        def callback(metrics):
+            fitness_log.append(metrics["best_fitness"])
+    
+>       csa_es.train(episodes, num_generations=3, callback=callback)
+
+tests/integration/test_csa_es_integration.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/csa_pipeline.py:411: in train
+    metrics = self.train_step(episodes)
+src/onn/ops/csa_pipeline.py:370: in train_step
+    fitness = self.evaluate_candidate(candidate, episodes)
+src/onn/ops/csa_pipeline.py:311: in evaluate_candidate
+    step_fitness = self._compute_step_fitness(result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.csa_pipeline.CSAWithES object at 0x112a74380>
+result = CSAResult(raw_graph=RawSemanticGraph(timestamp_ns=0, nodes=[SemanticNode(node_id=1, bound_tensor=array([0.2359375 , 0....0]])), logos_converged=False, logos_iterations=10, logos_energy=35.3563346862793, edge_violation=4.275746423587634e-14)
+
+    def _compute_step_fitness(self, result: CSAResult) -> float:
+        """Compute fitness for a single pipeline step.
+    
+        Fitness = -violation - drift + collapse_score - latency
+    
+        Args:
+            result: CSA pipeline result
+    
+        Returns:
+            Step fitness (higher = better)
+        """
+        cfg = self.fitness_config
+    
+        # Edge violation (from EdgeStabilizer)
+        violation = result.edge_violation
+    
+        # LOGOS energy as drift proxy
+        drift = result.logos_energy
+    
+        # Convergence bonus
+        converged_bonus = 1.0 if result.logos_converged else 0.0
+    
+        # Edge embedding variance (anti-collapse)
+        if result.edge_stabilizer_result is not None:
+            emb = result.edge_stabilizer_result.stabilized_embeddings
+            collapse_score = torch.var(emb).item() if emb.numel() > 0 else 0.0
+        else:
+            collapse_score = 0.0
+    
+        fitness = (
+>           - cfg.alpha_violation * violation
+            - cfg.alpha_drift * drift
+            + cfg.alpha_collapse * collapse_score
+            + converged_bonus
+        )
+E       AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+
+src/onn/ops/csa_pipeline.py:347: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  onn.ops.logos_solver:logos_solver.py:510 LOGOS did not converge after 10 iterations. is_valid=False, final_energy=35.356335
+_________________ TestONNESGateLoop.test_evaluation_gates_work _________________
+
+self = <test_onn_es_gate_loop.TestONNESGateLoop object at 0x112713350>
+
+    def test_evaluation_gates_work(self):
+        """Evaluation gates should correctly pass/fail based on metrics."""
+        # Metrics that should pass
+        good_metrics = {
+            "violation_mean": 0.01,
+            "violation_max": 0.05,
+            "drift": 0.3,
+            "collapse_score": 0.1,
+            "latency_mean": 2.0,
+            "ricci_energy": 10.0,
+        }
+    
+        config = GateConfig()
+>       report = evaluate_gates(good_metrics, config)
+
+tests/integration/test_onn_es_gate_loop.py:99: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+metrics = {'collapse_score': 0.1, 'drift': 0.3, 'latency_mean': 2.0, 'ricci_energy': 10.0, ...}
+config = GateConfig(violation_max=0.1, violation_mean=0.05, drift_max=1.0, collapse_min=0.01, latency_max=5.0, contradiction_max=0.05, ricci_max=100.0)
+
+    def evaluate_gates(
+        metrics: EvalMetrics,
+        config: Optional[GateConfig] = None,
+    ) -> GateReport:
+        """Check all gates and return pass/fail with details."""
+        if config is None:
+            config = GateConfig()
+    
+        results: List[GateResult] = []
+        failed_gates: List[str] = []
+    
+        def check(gate_id, value, op, threshold, desc):
+            passed = (op == "<=" and value <= threshold) or (
+                op == ">=" and value >= threshold
+            )
+            results.append(GateResult(gate_id, passed, value, threshold, desc))
+            if not passed:
+                failed_gates.append(gate_id)
+    
+        check(
+            "feasibility_mean",
+>           metrics.violation_mean,
+            "<=",
+            config.violation_mean,
+            f"Mean violation ≤ {config.violation_mean}",
+        )
+E       AttributeError: 'dict' object has no attribute 'violation_mean'
+
+src/onn/eval/gates.py:48: AttributeError
+___________________ TestONNESGateLoop.test_full_onn_es_loop ____________________
+
+self = <test_onn_es_gate_loop.TestONNESGateLoop object at 0x112711d60>
+
+    def test_full_onn_es_loop(self):
+        """Full ONN-ES loop: solver → metrics → gates."""
+        # Setup
+        edges = [(0, 1), (1, 2), (2, 0), (0, 2)]  # Triangle + chord = 2 cycles
+        graph = EdgeGraph.from_edge_list(edges)
+    
+        # Solver
+        solver_config = PCSolverConfig(steps=10, step_size=0.05)
+        solver = ProjectionConsensusSolver(solver_config)
+    
+        # Create synthetic episode
+        episode = []
+        for t in range(5):
+            x_obs = torch.randn(4, 32) * 0.1  # Small random observations
+            episode.append(EpisodeStep(x_obs=x_obs, edge_graph=graph, is_event=(t==2)))
+    
+        # Run episode
+        fitness_config = FitnessConfig()
+        metrics = evaluate_episode(solver, episode, fitness_config)
+    
+        # Check metrics are valid
+        assert metrics.violation_mean >= 0
+        assert metrics.drift_mean >= 0
+        assert metrics.collapse_score >= 0
+    
+        # Check gates
+        metrics_dict = {
+            "violation_mean": metrics.violation_mean,
+            "violation_max": metrics.violation_max,
+            "drift_mean": metrics.drift_mean,
+            "collapse_score": metrics.collapse_score,
+            "latency_mean": metrics.latency_mean,
+            "ricci_energy": metrics.ricci_energy,
+        }
+    
+        gate_config = GateConfig()
+>       report = evaluate_gates(metrics_dict, gate_config)
+
+tests/integration/test_onn_es_gate_loop.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+metrics = {'collapse_score': 0.004643755918368697, 'drift_mean': 0.8142436981201172, 'latency_mean': 1.0, 'ricci_energy': 10.0, ...}
+config = GateConfig(violation_max=0.1, violation_mean=0.05, drift_max=1.0, collapse_min=0.01, latency_max=5.0, contradiction_max=0.05, ricci_max=100.0)
+
+    def evaluate_gates(
+        metrics: EvalMetrics,
+        config: Optional[GateConfig] = None,
+    ) -> GateReport:
+        """Check all gates and return pass/fail with details."""
+        if config is None:
+            config = GateConfig()
+    
+        results: List[GateResult] = []
+        failed_gates: List[str] = []
+    
+        def check(gate_id, value, op, threshold, desc):
+            passed = (op == "<=" and value <= threshold) or (
+                op == ">=" and value >= threshold
+            )
+            results.append(GateResult(gate_id, passed, value, threshold, desc))
+            if not passed:
+                failed_gates.append(gate_id)
+    
+        check(
+            "feasibility_mean",
+>           metrics.violation_mean,
+            "<=",
+            config.violation_mean,
+            f"Mean violation ≤ {config.violation_mean}",
+        )
+E       AttributeError: 'dict' object has no attribute 'violation_mean'
+
+src/onn/eval/gates.py:48: AttributeError
+____________________________ test_ortsf_functional _____________________________
+
+    def test_ortsf_functional():
+        # Setup
+        input_dim = 64
+        predictor = DeepDeltaPredictor(input_dim=input_dim)
+        ortsf = ORTSFOperator(predictor=predictor, delay_ms=50.0)
+    
+        # Run a few steps
+        for t in range(5):
+            current_trace = torch.randn(input_dim)
+>           cmd = ortsf.transform(current_trace)
+
+tests/smoke/test_ortsf_functional.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/onn/ops/ortsf.py:143: in transform
+    u_cmd = self.control_synthesis(r_comp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <onn.ops.ortsf.ORTSFOperator object at 0x12bfe7290>
+compensated_trace = tensor([ 9.5759e-01,  3.1694e-01,  5.2748e-01, -9.6221e-01, -1.9241e+00,
+        -6.1316e-01, -4.7130e-02, -1.7172e-01...5e+00, -2.3319e+00,  7.1379e-01, -9.3437e-01, -5.3179e-02,
+        -6.1115e-01, -2.2245e-01,  7.3423e-01, -5.8812e-01])
+
+    def control_synthesis(self, compensated_trace: torch.Tensor) -> ActuatorCommand:
+        """
+        T_control: Map semantic trace to actuator commands using PD control.
+        Assumes the trace represents a target state on the manifold.
+        """
+        # Target state extracted from trace (e.g., first 7 dims)
+        target = compensated_trace[:7].cpu().numpy()
+    
+        # Simple PD Control: u = Kp*e + Kd*de/dt
+        # For MVP, we assume current state is 0 for error calculation
+        current_state = np.zeros_like(target)
+        error = target - current_state
+    
+        delta_error = error
+        if self.last_predicted_error is not None:
+            delta_error = error - self.last_predicted_error.cpu().numpy()[:7]
+    
+        self.last_predicted_error = compensated_trace.detach()
+    
+        u = self.kp * error + self.kd * delta_error
+    
+>       return ActuatorCommand(
+            joint_targets=u,
+            mode=1,  # Active control mode
+        )
+E       TypeError: ActuatorCommand.__init__() got an unexpected keyword argument 'joint_targets'
+
+src/onn/ops/ortsf.py:134: TypeError
+______________________ test_multi_hypothesis_convergence _______________________
+
+    def test_multi_hypothesis_convergence():
+        """
+        Test that multi-hypothesis solving selects a stable interpretation.
+        """
+        config = LOGOSConfig(max_iterations=10, learning_rate=0.01)
+        solver = LOGOSSolver(config)
+    
+        episode = generate_synthetic_episode(num_steps=1)
+>       raw_graph = episode[0].graph
+E       AttributeError: 'EpisodeStep' object has no attribute 'graph'
+
+tests/unit/test_multi_hypothesis.py:16: AttributeError
+____________ test_philosophical_recovery_from_wrong_interpretation _____________
+
+    def test_philosophical_recovery_from_wrong_interpretation():
+        """
+        Final Philosophical Proof:
+        Maintain 4 hypotheses, where 2 are intentionally corrupted with high noise (wrong interpretation).
+        Verify that the solver recovers the true existence by converging to the low-residual manifold.
+        """
+        config = LOGOSConfig(max_iterations=30, learning_rate=0.01)
+        solver = LOGOSSolver(config)
+    
+        episode = generate_synthetic_episode(num_steps=1)
+>       raw_graph = episode[0].graph
+E       AttributeError: 'EpisodeStep' object has no attribute 'graph'
+
+tests/unit/test_philosophical_recovery.py:18: AttributeError
+============================= slowest 10 durations =============================
+1.57s call     tests/integration/test_geometric_es_integration.py::TestCMAESWithGeometric::test_fitness_improves_over_generations
+1.30s call     tests/integration/test_geometric_es_integration.py::TestCMAESWithGeometric::test_trainer_with_geometric_evaluation
+0.92s call     tests/integration/test_csa_es_integration.py::TestCSAWithES::test_training_step
+0.87s call     tests/integration/test_csa_es_integration.py::TestEndToEndIntegration::test_full_es_csa_loop
+0.84s call     tests/integration/test_csa_es_integration.py::TestCSAWithES::test_multi_generation_training
+0.84s call     tests/integration/test_csa_es_integration.py::TestCSAWithES::test_w_lin_optimization_improves
+0.81s call     tests/integration/test_csa_es_integration.py::TestEndToEndIntegration::test_es_trainer_with_csa_dimensions
+0.80s call     tests/integration/test_csa_es_integration.py::TestCSAWithES::test_candidate_evaluation
+0.77s call     tests/integration/test_onn_es_gate_loop.py::TestWLinOptimization::test_trainer_with_w_lin_creates_candidates
+0.69s call     tests/integration/test_enhanced_sego.py::TestEnhancedSEGO::test_process_without_detections
+=========================== short test summary info ============================
+FAILED tests/integration/test_csa_es_integration.py::TestCSAWithES::test_candidate_evaluation - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_csa_es_integration.py::TestCSAWithES::test_training_step - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_csa_es_integration.py::TestCSAWithES::test_multi_generation_training - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_csa_es_integration.py::TestCSAWithES::test_w_lin_optimization_improves - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_csa_es_integration.py::TestEndToEndIntegration::test_full_es_csa_loop - AttributeError: 'FitnessConfig' object has no attribute 'alpha_violation'
+FAILED tests/integration/test_onn_es_gate_loop.py::TestONNESGateLoop::test_evaluation_gates_work - AttributeError: 'dict' object has no attribute 'violation_mean'
+FAILED tests/integration/test_onn_es_gate_loop.py::TestONNESGateLoop::test_full_onn_es_loop - AttributeError: 'dict' object has no attribute 'violation_mean'
+FAILED tests/smoke/test_ortsf_functional.py::test_ortsf_functional - TypeError: ActuatorCommand.__init__() got an unexpected keyword argument 'j...
+FAILED tests/unit/test_multi_hypothesis.py::test_multi_hypothesis_convergence - AttributeError: 'EpisodeStep' object has no attribute 'graph'
+FAILED tests/unit/test_philosophical_recovery.py::test_philosophical_recovery_from_wrong_interpretation - AttributeError: 'EpisodeStep' object has no attribute 'graph'
+10 failed, 435 passed, 3 warnings in 13.61s
+((.venv) ) ojaehong@ojaehong-ui-MacBookAir ONN_folder % 
