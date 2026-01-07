@@ -189,11 +189,15 @@ def train():
                 current_gates = winner.final_gates.copy()
 
                 # Adapt meta-parameters based on history
-                adapted_meta_params = param_adapter.adapt(
-                    winner.branch.meta_params, residual_history
+                adapted_meta_params, adapt_reason = param_adapter.adapt(
+                    winner.branch.meta_params,
+                    residual_history,
+                    es_meta_params=winner.branch.meta_params,
                 )
                 if adapted_meta_params != winner.branch.meta_params:
-                    logger.info(f"  Adapting meta-params: {adapted_meta_params}")
+                    logger.info(
+                        f"  Adapting meta-params: {adapted_meta_params} (reason={adapt_reason})"
+                    )
                 current_meta_params = adapted_meta_params
             else:
                 logger.warning("  No surviving branches! Keeping current state.")

@@ -621,11 +621,13 @@ class AdaptationConfig:
     lr_decrease_factor: float = 0.99
     min_gate_lr: float = 0.001
     max_gate_lr: float = 0.5
+    trust_region_pct: float = 0.1  # Limit adaptation to ±10% of ES proposal
 
 
 class ParameterAdaptationManager:
     """
-    Manages self-tuning of meta-parameters like learning rates based on performance.
+    Manages self-tuning of meta-parameters like learning rates based on performance,
+    while respecting a trust region around the ES-proposed values to avoid control conflict.
     """
 
     def __init__(self, config: Optional[AdaptationConfig] = None):
@@ -635,12 +637,18 @@ class ParameterAdaptationManager:
         self,
         meta_params: Dict[str, float],
         residual_history: List[float],
-    ) -> Dict[str, float]:
+        es_meta_params: Optional[Dict[str, float]] = None,
+    ) -> Tuple[Dict[str, float], str]:
         """
-        Adapts meta-parameters based on the slope of the residual history.
+        Adapts meta-parameters based on residual slope with a trust region around ES proposals.
+
+        Returns:
+            (adapted_meta_params, reason)
         """
         if len(residual_history) < self.config.min_history_len:
-            return meta_params
+            return meta_params, "insufficient_history"
+
+        es_meta_params = es_meta_params or meta_params
 
         W = self.config.min_history_len
         recent_residuals = residual_history[-W:]
@@ -648,23 +656,28 @@ class ParameterAdaptationManager:
         r_start = max(recent_residuals[0], 1e-10)
         r_end = max(recent_residuals[-1], 1e-10)
 
-        # Calculate log-slope of the residual
         log_slope = (np.log(r_end) - np.log(r_start)) / W
 
         new_meta_params = meta_params.copy()
         current_gate_lr = new_meta_params.get("gate_lr", 0.1)
+        es_gate_lr = es_meta_params.get("gate_lr", current_gate_lr)
 
+        reason = "stable"
         if log_slope < self.config.steep_slope_threshold:
-            # Good progress, decrease LR to stabilize
             current_gate_lr *= self.config.lr_decrease_factor
+            reason = "improving"
         elif log_slope > self.config.plateau_slope_threshold:
-            # Plateaued, increase LR to escape
             current_gate_lr *= self.config.lr_increase_factor
+            reason = "plateau"
 
-        # Clamp the learning rate
         current_gate_lr = np.clip(
             current_gate_lr, self.config.min_gate_lr, self.config.max_gate_lr
         )
 
+        # Trust-region clamp relative to ES proposal
+        lower = es_gate_lr * (1 - self.config.trust_region_pct)
+        upper = es_gate_lr * (1 + self.config.trust_region_pct)
+        current_gate_lr = float(np.clip(current_gate_lr, lower, upper))
+
         new_meta_params["gate_lr"] = current_gate_lr
-        return new_meta_params
+        return new_meta_params, reason

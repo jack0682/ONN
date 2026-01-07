@@ -119,7 +119,9 @@ class TestMutationEffectiveness:
         print(f"Mean max delta: {mean_delta:.4f}")
         print(f"Max delta overall: {max_delta_overall:.4f}")
 
-        assert change_rate >= 0.5, f"Boundary mutation rarely changes gates: {change_rate:.2%}"
+        assert change_rate >= 0.5, (
+            f"Boundary mutation rarely changes gates: {change_rate:.2%}"
+        )
         assert mean_delta > 0.01, f"Mean delta too small: {mean_delta:.4f}"
 
     def test_rewire_mutation_changes_gates(self):
@@ -127,7 +129,9 @@ class TestMutationEffectiveness:
         delta_gates_list = []
 
         for seed in range(self.N_TRIALS):
-            num_nodes, edge_indices, gates = create_random_graph(seed + 1000, num_nodes=8)
+            num_nodes, edge_indices, gates = create_random_graph(
+                seed + 1000, num_nodes=8
+            )
             if len(gates) == 0:
                 continue
 
@@ -163,7 +167,9 @@ class TestMutationEffectiveness:
         print(f"Mean max delta: {mean_delta:.4f}")
         print(f"Max delta overall: {max_delta_overall:.4f}")
 
-        assert change_rate >= 0.3, f"Rewire mutation rarely changes gates: {change_rate:.2%}"
+        assert change_rate >= 0.3, (
+            f"Rewire mutation rarely changes gates: {change_rate:.2%}"
+        )
 
     def test_boundary_mutation_increases_active_ratio(self):
         improvement_count = 0
@@ -171,7 +177,9 @@ class TestMutationEffectiveness:
         degradation_count = 0
 
         for seed in range(self.N_TRIALS):
-            num_nodes, edge_indices, gates = create_random_graph(seed + 2000, num_nodes=10)
+            num_nodes, edge_indices, gates = create_random_graph(
+                seed + 2000, num_nodes=10
+            )
             if len(gates) == 0:
                 continue
 
@@ -186,7 +194,9 @@ class TestMutationEffectiveness:
                 rng=rng,
             )
 
-            mutated_metrics = compute_gate_metrics(num_nodes, edge_indices, mutated_gates)
+            mutated_metrics = compute_gate_metrics(
+                num_nodes, edge_indices, mutated_gates
+            )
 
             if mutated_metrics.active_ratio > original_metrics.active_ratio + 0.01:
                 improvement_count += 1
@@ -197,9 +207,13 @@ class TestMutationEffectiveness:
 
         total = improvement_count + same_count + degradation_count
         print(f"\n=== BOUNDARY Mutation Active Ratio Effect ===")
-        print(f"Improved:  {improvement_count}/{total} ({improvement_count/total:.2%})")
-        print(f"Same:      {same_count}/{total} ({same_count/total:.2%})")
-        print(f"Degraded:  {degradation_count}/{total} ({degradation_count/total:.2%})")
+        print(
+            f"Improved:  {improvement_count}/{total} ({improvement_count / total:.2%})"
+        )
+        print(f"Same:      {same_count}/{total} ({same_count / total:.2%})")
+        print(
+            f"Degraded:  {degradation_count}/{total} ({degradation_count / total:.2%})"
+        )
 
         assert improvement_count + same_count >= degradation_count, (
             f"Boundary mutation degrades more than it helps: {degradation_count} > {improvement_count + same_count}"
@@ -211,7 +225,9 @@ class TestMutationEffectiveness:
         beta0_increased = 0
 
         for seed in range(self.N_TRIALS):
-            num_nodes, edge_indices, gates = create_random_graph(seed + 3000, num_nodes=10, edge_density=0.3)
+            num_nodes, edge_indices, gates = create_random_graph(
+                seed + 3000, num_nodes=10, edge_density=0.3
+            )
             if len(gates) == 0:
                 continue
 
@@ -233,7 +249,9 @@ class TestMutationEffectiveness:
                 boost_cycles=True,
             )
 
-            mutated_metrics = compute_gate_metrics(num_nodes, edge_indices, mutated_gates)
+            mutated_metrics = compute_gate_metrics(
+                num_nodes, edge_indices, mutated_gates
+            )
 
             if mutated_metrics.beta0 < original_metrics.beta0:
                 beta0_reduced += 1
@@ -244,12 +262,18 @@ class TestMutationEffectiveness:
 
         total = beta0_reduced + beta0_same + beta0_increased
         print(f"\n=== REWIRE Mutation β₀ Effect (Component Bridging) ===")
-        print(f"β₀ reduced:   {beta0_reduced}/{total} ({beta0_reduced/total:.2%})")
-        print(f"β₀ same:      {beta0_same}/{total} ({beta0_same/total:.2%})")
-        print(f"β₀ increased: {beta0_increased}/{total} ({beta0_increased/total:.2%})")
+        print(f"β₀ reduced:   {beta0_reduced}/{total} ({beta0_reduced / total:.2%})")
+        print(f"β₀ same:      {beta0_same}/{total} ({beta0_same / total:.2%})")
+        print(
+            f"β₀ increased: {beta0_increased}/{total} ({beta0_increased / total:.2%})"
+        )
 
         if beta0_reduced + beta0_same > 0:
-            success_rate = beta0_reduced / (beta0_reduced + beta0_increased) if (beta0_reduced + beta0_increased) > 0 else 1.0
+            success_rate = (
+                beta0_reduced / (beta0_reduced + beta0_increased)
+                if (beta0_reduced + beta0_increased) > 0
+                else 1.0
+            )
             print(f"Bridge success rate: {success_rate:.2%}")
 
     def test_rewire_mutation_increases_beta1(self):
@@ -258,7 +282,9 @@ class TestMutationEffectiveness:
         beta1_decreased = 0
 
         for seed in range(self.N_TRIALS):
-            num_nodes, edge_indices, gates = create_random_graph(seed + 4000, num_nodes=8, edge_density=0.5)
+            num_nodes, edge_indices, gates = create_random_graph(
+                seed + 4000, num_nodes=8, edge_density=0.5
+            )
             if len(gates) == 0:
                 continue
 
@@ -276,7 +302,9 @@ class TestMutationEffectiveness:
                 boost_cycles=True,
             )
 
-            mutated_metrics = compute_gate_metrics(num_nodes, edge_indices, mutated_gates)
+            mutated_metrics = compute_gate_metrics(
+                num_nodes, edge_indices, mutated_gates
+            )
 
             if mutated_metrics.beta1 > original_metrics.beta1:
                 beta1_increased += 1
@@ -287,9 +315,13 @@ class TestMutationEffectiveness:
 
         total = beta1_increased + beta1_same + beta1_decreased
         print(f"\n=== REWIRE Mutation β₁ Effect (Cycle Boosting) ===")
-        print(f"β₁ increased: {beta1_increased}/{total} ({beta1_increased/total:.2%})")
-        print(f"β₁ same:      {beta1_same}/{total} ({beta1_same/total:.2%})")
-        print(f"β₁ decreased: {beta1_decreased}/{total} ({beta1_decreased/total:.2%})")
+        print(
+            f"β₁ increased: {beta1_increased}/{total} ({beta1_increased / total:.2%})"
+        )
+        print(f"β₁ same:      {beta1_same}/{total} ({beta1_same / total:.2%})")
+        print(
+            f"β₁ decreased: {beta1_decreased}/{total} ({beta1_decreased / total:.2%})"
+        )
 
         if beta1_increased + beta1_decreased > 0:
             boost_rate = beta1_increased / (beta1_increased + beta1_decreased)
@@ -300,7 +332,9 @@ class TestMutationEffectiveness:
         tau1_shifts = []
 
         for seed in range(self.N_TRIALS):
-            num_nodes, edge_indices, gates = create_random_graph(seed + 5000, num_nodes=10)
+            num_nodes, edge_indices, gates = create_random_graph(
+                seed + 5000, num_nodes=10
+            )
             if len(gates) == 0:
                 continue
 
@@ -315,10 +349,16 @@ class TestMutationEffectiveness:
                 rng=rng,
             )
 
-            mutated_metrics = compute_gate_metrics(num_nodes, edge_indices, mutated_gates)
+            mutated_metrics = compute_gate_metrics(
+                num_nodes, edge_indices, mutated_gates
+            )
 
-            tau0_shifts.append(abs(mutated_metrics.tau0_star - original_metrics.tau0_star))
-            tau1_shifts.append(abs(mutated_metrics.tau1_star - original_metrics.tau1_star))
+            tau0_shifts.append(
+                abs(mutated_metrics.tau0_star - original_metrics.tau0_star)
+            )
+            tau1_shifts.append(
+                abs(mutated_metrics.tau1_star - original_metrics.tau1_star)
+            )
 
         mean_tau0_shift = np.mean(tau0_shifts)
         mean_tau1_shift = np.mean(tau1_shifts)
@@ -340,7 +380,9 @@ class TestMutationEffectiveness:
         }
 
         for seed in range(self.N_TRIALS):
-            num_nodes, edge_indices, gates = create_random_graph(seed + 6000, num_nodes=10)
+            num_nodes, edge_indices, gates = create_random_graph(
+                seed + 6000, num_nodes=10
+            )
             if len(gates) == 0:
                 continue
 
@@ -350,7 +392,9 @@ class TestMutationEffectiveness:
             boundary_gates = boundary_gate_mutation(
                 gates=gates.copy(), tau_star=0.5, delta=0.3, sigma=0.25, rng=rng1
             )
-            boundary_metrics = compute_gate_metrics(num_nodes, edge_indices, boundary_gates)
+            boundary_metrics = compute_gate_metrics(
+                num_nodes, edge_indices, boundary_gates
+            )
 
             rng2 = np.random.RandomState(seed + 17000)
             rewire_gates = topology_rewire_mutation(
@@ -401,6 +445,7 @@ class TestMutationEffectiveness:
 
 class TestMutationEffectivenessOnSparseGraphs:
     """Test mutations on sparse/disconnected graphs where rewire should help."""
+
     N_TRIALS = 50
 
     def create_sparse_disconnected_graph(self, seed: int, num_nodes: int = 12):
@@ -446,7 +491,9 @@ class TestMutationEffectivenessOnSparseGraphs:
         for seed in range(self.N_TRIALS):
             num_nodes, edge_indices, gates = self.create_sparse_disconnected_graph(seed)
 
-            original_beta0, _ = compute_betti_numbers(num_nodes, edge_indices, gates, tau=0.3)
+            original_beta0, _ = compute_betti_numbers(
+                num_nodes, edge_indices, gates, tau=0.3
+            )
 
             if original_beta0 <= 1:
                 continue
@@ -465,7 +512,9 @@ class TestMutationEffectivenessOnSparseGraphs:
                 boost_cycles=False,
             )
 
-            mutated_beta0, _ = compute_betti_numbers(num_nodes, edge_indices, mutated_gates, tau=0.3)
+            mutated_beta0, _ = compute_betti_numbers(
+                num_nodes, edge_indices, mutated_gates, tau=0.3
+            )
 
             if mutated_beta0 < original_beta0:
                 bridge_success += 1
@@ -481,13 +530,17 @@ class TestMutationEffectivenessOnSparseGraphs:
         print(f"Bridge success rate: {success_rate:.2%}")
 
         assert bridge_attempted > 0, "No disconnected graphs generated"
-        assert success_rate >= 0.3, f"REWIRE rarely bridges components: {success_rate:.2%}"
+        assert success_rate >= 0.3, (
+            f"REWIRE rarely bridges components: {success_rate:.2%}"
+        )
 
     def test_rewire_increases_mean_gate_on_sparse(self):
         delta_gates = []
 
         for seed in range(self.N_TRIALS):
-            num_nodes, edge_indices, gates = self.create_sparse_disconnected_graph(seed + 1000)
+            num_nodes, edge_indices, gates = self.create_sparse_disconnected_graph(
+                seed + 1000
+            )
 
             original_mean = np.mean(gates)
 
@@ -513,8 +566,18 @@ class TestMutationEffectivenessOnSparseGraphs:
         print(f"Mean Δmean_gate: {mean_delta:.4f}")
         print(f"Positive delta rate: {positive_rate:.2%}")
 
-        t_stat, p_value = stats.ttest_1samp(delta_gates, 0)
-        print(f"One-sample t-test: t={t_stat:.3f}, p={p_value:.4f}")
+        # Use Wilcoxon signed-rank test to avoid precision loss warnings on near-identical data
+        if len(delta_gates) >= 10:
+            t_stat, p_value = stats.wilcoxon(delta_gates, zero_method="pratt")
+            print(f"Wilcoxon signed-rank test: W={t_stat:.3f}, p={p_value:.4f}")
+        else:
+            # Fallback to t-test with warning suppression for very small samples
+            import warnings
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                t_stat, p_value = stats.ttest_1samp(delta_gates, 0)
+            print(f"One-sample t-test (small sample): t={t_stat:.3f}, p={p_value:.4f}")
 
         assert mean_delta > 0, f"REWIRE doesn't increase mean gate: {mean_delta:.4f}"
 
@@ -522,9 +585,13 @@ class TestMutationEffectivenessOnSparseGraphs:
         beta0_preserved = 0
 
         for seed in range(self.N_TRIALS):
-            num_nodes, edge_indices, gates = self.create_sparse_disconnected_graph(seed + 2000)
+            num_nodes, edge_indices, gates = self.create_sparse_disconnected_graph(
+                seed + 2000
+            )
 
-            original_beta0, original_beta1 = compute_betti_numbers(num_nodes, edge_indices, gates, tau=0.3)
+            original_beta0, original_beta1 = compute_betti_numbers(
+                num_nodes, edge_indices, gates, tau=0.3
+            )
 
             rng = np.random.RandomState(seed + 22000)
             mutated_gates = boundary_gate_mutation(
@@ -535,7 +602,9 @@ class TestMutationEffectivenessOnSparseGraphs:
                 rng=rng,
             )
 
-            mutated_beta0, mutated_beta1 = compute_betti_numbers(num_nodes, edge_indices, mutated_gates, tau=0.3)
+            mutated_beta0, mutated_beta1 = compute_betti_numbers(
+                num_nodes, edge_indices, mutated_gates, tau=0.3
+            )
 
             if mutated_beta0 == original_beta0:
                 beta0_preserved += 1

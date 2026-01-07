@@ -1,0 +1,21 @@
+........................................................................ [ 13%]
+........................................................................ [ 27%]
+........................................................................ [ 40%]
+........................................................................ [ 54%]
+........................................................................ [ 67%]
+........................................................................ [ 81%]
+........................................................................ [ 94%]
+...........................                                              [100%]
+=============================== warnings summary ===============================
+tests/integration/test_mutation_effectiveness.py::TestMutationEffectivenessOnSparseGraphs::test_rewire_increases_mean_gate_on_sparse
+  /Users/ojaehong/ONN_folder/.venv/lib/python3.12/site-packages/scipy/stats/_axis_nan_policy.py:523: RuntimeWarning: Precision loss occurred in moment calculation due to catastrophic cancellation. This occurs when the data are nearly identical. Results may be unreliable.
+    res = hypotest_fun_out(*samples, **kwds)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 5 durations ==============================
+12.87s call     tests/integration/test_csa_es_integration.py::TestCSAWithES::test_w_lin_optimization_improves
+10.57s call     tests/integration/test_tau_star_robustness.py::TestTauStarRobustness::test_tau_star_noise_sensitivity_analysis
+7.11s call     tests/integration/test_csa_es_integration.py::TestEndToEndIntegration::test_full_es_csa_loop
+6.63s call     tests/integration/test_csa_es_integration.py::TestCSAWithES::test_multi_generation_training
+6.54s call     tests/integration/test_parameter_ablation.py::TestParameterAblation::test_gate_lr_sensitivity
+531 passed, 1 warning in 129.14s (0:02:09)
