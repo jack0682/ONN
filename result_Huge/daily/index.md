@@ -1,0 +1,16 @@
+# Daily Index
+2026-02-16: [2026-02-16_onn_daily.md] — Result_Huge benchmark replay hardened constructor-to-theory bridge with conditional leakage gate. (Target: Scalability→Delay Bridge)
+2026-02-17: [2026-02-17_onn_daily.md] — Quantile transfer correction with finite-sample gate (Target: Finite-sample quantile transfer).
+2026-02-18: [2026-02-18_onn_daily.md] — Dependence-robust quantile gate with block-bootstrap correction. (Target: Block-bootstrap correction + regime-shift detection)
+2026-02-18: [2026-02-18_onn_daily.md] — Dependence-robust quantile gate with block bootstrap correction. (Target: Dependence-Robust Quantile Gate)
+2026-02-19: [2026-02-19_onn_daily.md] — Added long-memory diagnostic + fallback quantile gate (Target: LRD guard)
+2026-02-20: [2026-02-20_onn_daily.md] — Calibrated LRD diagnostic and tied branch gate to block-maxima bootstrap conservatism. (Target: LRD calibration + extrema bootstrap)
+2026-02-21: [2026-02-21_onn_daily.md] — Added CP-guarded LRD gate and finite-sample bias envelope. (Target: LRD gate + CP preemption)
+2026-02-22: [2026-02-22_onn_daily.md] — Added CP-preemption lemma and Hurst-bias envelope. (Target: CP preemption + Hurst bias)
+2026-02-23: [2026-02-23_onn_daily.md] — Calibration-aware b_H and CP lead-time guard for LRD gate (Target: b_H+CP calibration)
+2026-02-24: [2026-02-24_onn_daily.md] — Cross-noise MC calibration for b_H and L_cp quantiles. (Target: Cross-noise calibration)
+2026-02-25: [2026-02-25_onn_daily.md] — MC calibration + CI validity for b_H and L_cp^p (Target: MC calibration + CI)
+2026-02-26: [2026-02-26_onn_daily.md] — Added dependence-aware dual guard with cross-noise calibration repair. (Target: Dual-guard calibration bridge)
+2026-02-27: [2026-02-27_onn_daily.md] — Added CI-floor + inflation-cap triple guard and lag-monitor repair. (Target: LRD CI floor + skew cap)
+2026-03-02: [2026-03-02_onn_daily.md] — Falsified the d-independent CI floor near the ARFIMA boundary and repaired chatter with a hysteretic dwell-time guard. (Target: Boundary-safe CI floor + hysteretic triple guard)
+2026-03-03: [2026-03-03_onn_daily.md] — Added a budgeted operating screen for `gamma_CI`, falsified short-window boundary viability, and ranked branch policies by shared-driver switch count. (Target: Calibration envelope + false-reject screen)
