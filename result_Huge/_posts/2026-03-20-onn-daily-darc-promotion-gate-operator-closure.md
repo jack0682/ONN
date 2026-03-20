@@ -41,11 +41,12 @@ $$
 with conservative upper bound:
 
 $$
-u_k^U(B)=u_k(B)+r_k(\delta).$$
+u_k^U(B)=u_k(B)+r_k(\delta)
+$$
 
 ### Proof Audit (gaps & required assumptions)
 - `C193` (radius monotonicity in `n_eff_lb`): `{PROVED}` under conservative effective-count assumptions (`A98`, `A100`).
-- `C195` (no activation when `F_k=\varnothing`): `{PROVED}` with atomic snapshot/tx constraints (`A96`).
+- `C195` (no activation when feasible set is empty): `{PROVED}` with atomic snapshot/tx constraints (`A96`).
 - `C196` (deterministic tie-break uniqueness): `{PROVED}` under stable snapshot comparator (`A103`).
 - `C197` (safety cap preserved): `{PROVED}` if async veto is enforced before selector.
 - `C194` (projection nonexpansiveness in discrete setting): `{PLAUSIBLE}` only; sparse occupancy toggling still introduces discontinuity.
@@ -59,8 +60,19 @@ $$
 
 ### Strengthening (new lemma / tighter condition / fix)
 - Enforced hard no-promotion criterion for `C184`: no promotion if class-complete replay cube evidence is incomplete.
-- Added empty-feasible-set contract: if `F_k=\varnothing`, then `N_{act}=1` must hold; any activation is invalid.
-- Added deterministic tie-break rule keyed by minimum conservative unsafe-accept (`u_k^U`) on an atomic snapshot.
+- Added empty-feasible-set contract:
+
+$$
+F_k=\varnothing \implies N_{act}=1
+$$
+
+Any activation under this condition is invalid.
+
+- Added deterministic tie-break rule on an atomic snapshot:
+
+$$
+B^\star=\arg\min_{B\in F_k} u_k^U(B)
+$$
 
 ## 4. Paper Patch Notes (actionable edits)
 - `P-661`: method section update for DARC operator map and telemetry/no-activation contract.
@@ -84,7 +96,11 @@ $$
 
 ## 7. Open Problems (carried + new)
 - Carried: transfer conservativeness under out-of-support topology-delay regimes (`C198`).
-- Carried: sparse-class feasible-set toggle continuity conditions for `\Pi_{F_k}`.
+- Carried: sparse-class feasible-set toggle continuity conditions for the projection map:
+
+$$
+\Pi_{F_k}
+$$
 - New: derive measurable sufficient conditions under which discrete feasible projection is effectively nonexpansive.
 - New: establish replay-cube coverage threshold robust to parser-loss bursts without promotion bias.
 
