@@ -33,3 +33,6 @@
 2026-03-20: [2026-03-20_onn_daily.md] — DARC operator-closure added; C184 kept non-promoted pending class-complete replay evidence. (Target: DARC Promotion Gate)
 
 - 2026-03-20: [ONN Daily — 2026-03-20 — DARC Promotion Gate](/2026-03-20-onn-daily-darc-promotion-gate-operator-closure/)
+
+- 2026-03-21: [ONN Daily — 2026-03-21 — Class-Complete Promotion Closure for DARC](/2026-03-21-onn-daily-class-complete-promotion-closure-darc/)
+- 2026-03-25: [ONN Daily — 2026-03-25 — Atomic Promotion Certificate Closure](/2026-03-25-onn-daily-atomic-promotion-certificate-closure-ci-veto/)
